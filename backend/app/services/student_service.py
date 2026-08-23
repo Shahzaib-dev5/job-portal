@@ -1,0 +1,459 @@
+from typing import Any, Dict, List, Optional
+from datetime import datetime
+import os
+import shutil
+from pathlib import Path
+
+from fastapi import HTTPException, UploadFile
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+from app.models.application import Application
+from app.models.company import Company
+from app.models.interview import InterviewRequest
+from app.models.job import Job
+from app.models.student import (
+    StudentAchievement,
+    StudentCertification,
+    StudentExperience,
+    StudentProfile,
+    StudentSkill,
+    StudentSoftSkill,
+)
+from app.schemas.student import (
+    AchievementCreateRequest,
+    AchievementUpdateRequest,
+    ApplicationCreateRequest,
+    CertificationCreateRequest,
+    ExperienceCreateRequest,
+    ExperienceUpdateRequest,
+    SkillCreateRequest,
+    SoftSkillCreateRequest,
+    StudentProfileUpdateRequest,
+)
+
+UPLOADS_DIR = Path(__file__).resolve().parents[3] / "uploads"
+
+
+class StudentService:
+    @staticmethod
+    def get_student_profile(db: Session, user_id: int) -> StudentProfile:
+        student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
+        if not student:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+        return student
+
+    @staticmethod
+    def update_student_profile(db: Session, user_id: int, update_data: StudentProfileUpdateRequest) -> StudentProfile:
+        student = StudentService.get_student_profile(db, user_id)
+        if update_data.bio is not None:
+            student.bio = update_data.bio
+        db.commit()
+        db.refresh(student)
+        return student
+
+    @staticmethod
+    def upload_resume(db: Session, user_id: int, file: UploadFile) -> str:
+        student = StudentService.get_student_profile(db, user_id)
+        allowed_extensions = [".pdf", ".doc", ".docx"]
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="Invalid file format. Use PDF, DOC, or DOCX.")
+
+        filename = f"resume_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+        filepath = UPLOADS_DIR / "resumes" / filename
+        os.makedirs(filepath.parent, exist_ok=True)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        student.resume_path = f"/uploads/resumes/{filename}"
+        db.commit()
+        return student.resume_path
+
+    @staticmethod
+    def upload_photo(db: Session, user_id: int, file: UploadFile) -> str:
+        student = StudentService.get_student_profile(db, user_id)
+        allowed_extensions = [".jpg", ".jpeg", ".png"]
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="Invalid file format. Use JPG, JPEG, or PNG.")
+
+        filename = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+        filepath = UPLOADS_DIR / "photos" / filename
+        os.makedirs(filepath.parent, exist_ok=True)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        student.photo_path = f"/uploads/photos/{filename}"
+        db.commit()
+        return student.photo_path
+
+    @staticmethod
+    def remove_resume(db: Session, user_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        if student.resume_path:
+            filepath = UPLOADS_DIR.parent / student.resume_path.lstrip("/")
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        student.resume_path = None
+        db.commit()
+
+    @staticmethod
+    def remove_photo(db: Session, user_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        if student.photo_path:
+            filepath = UPLOADS_DIR.parent / student.photo_path.lstrip("/")
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        student.photo_path = None
+        db.commit()
+
+    @staticmethod
+    def add_skill(db: Session, user_id: int, skill_data: SkillCreateRequest) -> StudentSkill:
+        student = StudentService.get_student_profile(db, user_id)
+        existing = (
+            db.query(StudentSkill)
+            .filter(StudentSkill.student_profile_id == student.id, StudentSkill.skill_name == skill_data.skill_name)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Skill already exists")
+
+        new_skill = StudentSkill(
+            student_profile_id=student.id,
+            skill_name=skill_data.skill_name,
+            proficiency=skill_data.proficiency,
+        )
+        db.add(new_skill)
+        db.commit()
+        db.refresh(new_skill)
+        return new_skill
+
+    @staticmethod
+    def list_skills(db: Session, user_id: int) -> List[StudentSkill]:
+        student = StudentService.get_student_profile(db, user_id)
+        return db.query(StudentSkill).filter(StudentSkill.student_profile_id == student.id).all()
+
+    @staticmethod
+    def remove_skill(db: Session, user_id: int, skill_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        skill = db.query(StudentSkill).filter(StudentSkill.id == skill_id, StudentSkill.student_profile_id == student.id).first()
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+        db.delete(skill)
+        db.commit()
+
+    @staticmethod
+    def add_experience(db: Session, user_id: int, exp_data: ExperienceCreateRequest) -> StudentExperience:
+        student = StudentService.get_student_profile(db, user_id)
+        new_exp = StudentExperience(
+            student_profile_id=student.id,
+            company_name=exp_data.company_name,
+            title=exp_data.title,
+            start_date=exp_data.start_date,
+            end_date=exp_data.end_date,
+            description=exp_data.description,
+        )
+        db.add(new_exp)
+        db.commit()
+        db.refresh(new_exp)
+        return new_exp
+
+    @staticmethod
+    def list_experiences(db: Session, user_id: int) -> List[StudentExperience]:
+        student = StudentService.get_student_profile(db, user_id)
+        return (
+            db.query(StudentExperience)
+            .filter(StudentExperience.student_profile_id == student.id)
+            .order_by(StudentExperience.start_date.desc())
+            .all()
+        )
+
+    @staticmethod
+    def update_experience(db: Session, user_id: int, exp_id: int, update_data: ExperienceUpdateRequest) -> StudentExperience:
+        student = StudentService.get_student_profile(db, user_id)
+        experience = db.query(StudentExperience).filter(StudentExperience.id == exp_id, StudentExperience.student_profile_id == student.id).first()
+        if not experience:
+            raise HTTPException(status_code=404, detail="Experience not found")
+        for field, value in update_data.dict(exclude_unset=True).items():
+            setattr(experience, field, value)
+        db.commit()
+        db.refresh(experience)
+        return experience
+
+    @staticmethod
+    def delete_experience(db: Session, user_id: int, exp_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        experience = db.query(StudentExperience).filter(StudentExperience.id == exp_id, StudentExperience.student_profile_id == student.id).first()
+        if not experience:
+            raise HTTPException(status_code=404, detail="Experience not found")
+        db.delete(experience)
+        db.commit()
+
+    @staticmethod
+    def add_certification(db: Session, user_id: int, cert_data: CertificationCreateRequest) -> StudentCertification:
+        student = StudentService.get_student_profile(db, user_id)
+        new_cert = StudentCertification(
+            student_profile_id=student.id,
+            name=cert_data.name,
+            issuer=cert_data.issuer,
+            issue_date=cert_data.issue_date,
+            expiry_date=cert_data.expiry_date,
+        )
+        db.add(new_cert)
+        db.commit()
+        db.refresh(new_cert)
+        return new_cert
+
+    @staticmethod
+    def list_certifications(db: Session, user_id: int) -> List[StudentCertification]:
+        student = StudentService.get_student_profile(db, user_id)
+        return db.query(StudentCertification).filter(StudentCertification.student_profile_id == student.id).all()
+
+    @staticmethod
+    def delete_certification(db: Session, user_id: int, cert_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        cert = db.query(StudentCertification).filter(StudentCertification.id == cert_id, StudentCertification.student_profile_id == student.id).first()
+        if not cert:
+            raise HTTPException(status_code=404, detail="Certification not found")
+        db.delete(cert)
+        db.commit()
+
+    @staticmethod
+    def add_soft_skill(db: Session, user_id: int, soft_skill_data: SoftSkillCreateRequest) -> StudentSoftSkill:
+        student = StudentService.get_student_profile(db, user_id)
+        existing = (
+            db.query(StudentSoftSkill)
+            .filter(StudentSoftSkill.student_profile_id == student.id, StudentSoftSkill.skill_name == soft_skill_data.skill_name)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Soft skill already exists")
+
+        new_skill = StudentSoftSkill(student_profile_id=student.id, skill_name=soft_skill_data.skill_name)
+        db.add(new_skill)
+        db.commit()
+        db.refresh(new_skill)
+        return new_skill
+
+    @staticmethod
+    def list_soft_skills(db: Session, user_id: int) -> List[StudentSoftSkill]:
+        student = StudentService.get_student_profile(db, user_id)
+        return db.query(StudentSoftSkill).filter(StudentSoftSkill.student_profile_id == student.id).all()
+
+    @staticmethod
+    def remove_soft_skill(db: Session, user_id: int, soft_skill_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        soft_skill = db.query(StudentSoftSkill).filter(StudentSoftSkill.id == soft_skill_id, StudentSoftSkill.student_profile_id == student.id).first()
+        if not soft_skill:
+            raise HTTPException(status_code=404, detail="Soft skill not found")
+        db.delete(soft_skill)
+        db.commit()
+
+    @staticmethod
+    def add_achievement(db: Session, user_id: int, achv_data: AchievementCreateRequest) -> StudentAchievement:
+        student = StudentService.get_student_profile(db, user_id)
+        new_achv = StudentAchievement(
+            student_profile_id=student.id,
+            title=achv_data.title,
+            description=achv_data.description,
+            date=achv_data.date,
+        )
+        db.add(new_achv)
+        db.commit()
+        db.refresh(new_achv)
+        return new_achv
+
+    @staticmethod
+    def list_achievements(db: Session, user_id: int) -> List[StudentAchievement]:
+        student = StudentService.get_student_profile(db, user_id)
+        return db.query(StudentAchievement).filter(StudentAchievement.student_profile_id == student.id).order_by(StudentAchievement.date.desc()).all()
+
+    @staticmethod
+    def update_achievement(db: Session, user_id: int, achv_id: int, update_data: AchievementUpdateRequest) -> StudentAchievement:
+        student = StudentService.get_student_profile(db, user_id)
+        achievement = db.query(StudentAchievement).filter(StudentAchievement.id == achv_id, StudentAchievement.student_profile_id == student.id).first()
+        if not achievement:
+            raise HTTPException(status_code=404, detail="Achievement not found")
+        for field, value in update_data.dict(exclude_unset=True).items():
+            setattr(achievement, field, value)
+        db.commit()
+        db.refresh(achievement)
+        return achievement
+
+    @staticmethod
+    def delete_achievement(db: Session, user_id: int, achv_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        achievement = db.query(StudentAchievement).filter(StudentAchievement.id == achv_id, StudentAchievement.student_profile_id == student.id).first()
+        if not achievement:
+            raise HTTPException(status_code=404, detail="Achievement not found")
+        db.delete(achievement)
+        db.commit()
+
+    @staticmethod
+    def list_published_jobs(
+        db: Session,
+        title: Optional[str] = None,
+        company_name: Optional[str] = None,
+        location: Optional[str] = None,
+        employment_type: Optional[str] = None,
+        skills: Optional[List[str]] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Dict[str, Any]:
+        query = db.query(Job).filter(Job.status == "published")
+        if title:
+            query = query.filter(Job.title.ilike(f"%{title}%"))
+        if company_name:
+            query = query.join(Company, Job.company_id == Company.id).filter(Company.company_name.ilike(f"%{company_name}%"))
+        if location:
+            query = query.filter(Job.location.ilike(f"%{location}%"))
+        if employment_type:
+            query = query.filter(Job.employment_type == employment_type)
+        if skills:
+            query = query.filter(Job.title.ilike(f"%{skills[0]}%"))
+
+        query = query.filter(or_(Job.application_deadline.is_(None), Job.application_deadline >= datetime.now().date()))
+        total = query.count()
+        jobs = query.offset((page - 1) * page_size).limit(page_size).all()
+
+        result = []
+        for job in jobs:
+            result.append({
+                "id": job.id,
+                "company_id": job.company_id,
+                "company_name": job.company.company_name if job.company else None,
+                "title": job.title,
+                "description": job.description,
+                "requirements": job.requirements,
+                "location": job.location,
+                "employment_type": job.employment_type,
+                "min_cgpa": float(job.min_cgpa) if job.min_cgpa is not None else None,
+                "salary_min": float(job.salary_min) if job.salary_min is not None else None,
+                "salary_max": float(job.salary_max) if job.salary_max is not None else None,
+                "application_deadline": job.application_deadline,
+                "created_at": job.created_at,
+                "updated_at": job.updated_at,
+            })
+
+        return {"total": total, "items": result, "page": page, "page_size": page_size}
+
+    @staticmethod
+    def get_job_detail(db: Session, job_id: int) -> Job:
+        job = db.query(Job).filter(Job.id == job_id, Job.status == "published").first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found or not published")
+        return job
+
+    @staticmethod
+    def apply_to_job(db: Session, user_id: int, job_id: int, application_data: ApplicationCreateRequest) -> Application:
+        student = StudentService.get_student_profile(db, user_id)
+        job = db.query(Job).filter(Job.id == job_id, Job.status == "published").first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found or not published")
+
+        existing = db.query(Application).filter(Application.job_id == job_id, Application.student_profile_id == student.id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Already applied to this job")
+        if not student.resume_path:
+            raise HTTPException(status_code=400, detail="Please upload a resume before applying")
+
+        application = Application(
+            job_id=job_id,
+            student_profile_id=student.id,
+            cover_letter=application_data.cover_letter,
+            resume_path=student.resume_path,
+            status="applied",
+        )
+        db.add(application)
+        db.commit()
+        db.refresh(application)
+        return application
+
+    @staticmethod
+    def list_applications(db: Session, user_id: int, status: Optional[str] = None, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        student = StudentService.get_student_profile(db, user_id)
+        query = db.query(Application).filter(Application.student_profile_id == student.id)
+        if status:
+            query = query.filter(Application.status == status)
+
+        total = query.count()
+        applications = query.offset((page - 1) * page_size).limit(page_size).all()
+
+        result = []
+        for app in applications:
+            result.append({
+                "id": app.id,
+                "job_id": app.job_id,
+                "job_title": app.job.title if app.job else None,
+                "company_name": app.job.company.company_name if app.job and app.job.company else None,
+                "cover_letter": app.cover_letter,
+                "resume_path": app.resume_path,
+                "status": app.status,
+                "applied_at": app.created_at,
+                "updated_at": app.updated_at,
+            })
+
+        return {"total": total, "items": result, "page": page, "page_size": page_size}
+
+    @staticmethod
+    def withdraw_application(db: Session, user_id: int, application_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        application = db.query(Application).filter(Application.id == application_id, Application.student_profile_id == student.id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+        if application.status not in ["applied", "shortlisted"]:
+            raise HTTPException(status_code=400, detail="Cannot withdraw this application")
+        application.status = "withdrawn"
+        db.commit()
+
+    @staticmethod
+    def list_interview_requests(db: Session, user_id: int, status: Optional[str] = None, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        student = StudentService.get_student_profile(db, user_id)
+        query = db.query(InterviewRequest).filter(InterviewRequest.student_profile_id == student.id)
+        if status:
+            query = query.filter(InterviewRequest.status == status)
+
+        total = query.count()
+        interviews = query.offset((page - 1) * page_size).limit(page_size).all()
+
+        result = []
+        for interview in interviews:
+            result.append({
+                "id": interview.id,
+                "company_id": interview.company_id,
+                "company_name": interview.company.company_name if interview.company else None,
+                "job_id": interview.job_id,
+                "job_title": interview.job.title if interview.job else None,
+                "message": interview.message,
+                "interview_date": interview.interview_date,
+                "status": interview.status,
+                "created_at": interview.created_at,
+                "responded_at": interview.responded_at,
+            })
+
+        return {"total": total, "items": result, "page": page, "page_size": page_size}
+
+    @staticmethod
+    def accept_interview_request(db: Session, user_id: int, request_id: int) -> InterviewRequest:
+        student = StudentService.get_student_profile(db, user_id)
+        interview = db.query(InterviewRequest).filter(InterviewRequest.id == request_id, InterviewRequest.student_profile_id == student.id, InterviewRequest.status == "pending").first()
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview request not found")
+        interview.status = "accepted"
+        interview.responded_at = datetime.utcnow()
+        db.commit()
+        db.refresh(interview)
+        return interview
+
+    @staticmethod
+    def decline_interview_request(db: Session, user_id: int, request_id: int) -> InterviewRequest:
+        student = StudentService.get_student_profile(db, user_id)
+        interview = db.query(InterviewRequest).filter(InterviewRequest.id == request_id, InterviewRequest.student_profile_id == student.id, InterviewRequest.status == "pending").first()
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview request not found")
+        interview.status = "declined"
+        interview.responded_at = datetime.utcnow()
+        db.commit()
+        db.refresh(interview)
+        return interview
