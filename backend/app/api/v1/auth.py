@@ -24,7 +24,15 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/student/login", response_model=TokenResponse)
 async def student_login(request: StudentLoginRequest, db: Session = Depends(get_db)):
-    user = await AuthService.authenticate_student_with_odoo(db, request.email, request.password)
+    # First try local authentication
+    try:
+        user = AuthService.authenticate_local(db, request.email, request.password)
+        if user.role != "student":
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    except HTTPException:
+        # Fall back to LMS authentication if local fails
+        user = await AuthService.authenticate_student_with_odoo(db, request.email, request.password)
+    
     token = AuthService.create_access_token_for_user(user)
     return TokenResponse(access_token=token, user=AuthService.get_user_info(user))
 
