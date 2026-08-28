@@ -43,7 +43,7 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 LMS_API_URL=
-LMS_DB_NAME=9july
+LMS_DB_NAME=OBE
 LMS_API_ENDPOINT=/web/session/authenticate
 LMS_PROFILE_MODEL=res.users
 LMS_TIMEOUT_SECONDS=10
@@ -51,6 +51,10 @@ ALLOWED_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","http://localho
 ```
 
 If the XAMPP MySQL root user has a password, put it after `DB_PASSWORD=`.
+
+Student LMS login uses `https://lms.uet.edu.pk/web/session/authenticate` with
+the student's own LMS email and password. Do not store LMS passwords in this
+repository or in `.env`; the student enters them on the login page.
 
 ### 4. Install packages
 
