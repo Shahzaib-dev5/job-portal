@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_role
 from app.database import get_db
 from app.models.user import User
+from app.config import settings
 from app.services.company_service import CompanyService
 
-UPLOADS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "uploads"))
+UPLOADS_DIR = str(settings.UPLOADS_DIR)
 
 router = APIRouter(prefix="/files", tags=["Files"])
 company_only = require_role(["company"])

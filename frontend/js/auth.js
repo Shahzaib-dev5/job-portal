@@ -21,7 +21,12 @@ class Auth {
             company: '/js/dashboards/company-dashboard.html',
             student: '/js/dashboards/student-dashboard.html'
         };
-        window.location.href = dashboards[user?.role] || '/index.html';
+        const target = dashboards[user?.role];
+        if (target) {
+            window.location.href = target;
+        } else {
+            this.logout();
+        }
     }
 
     static logout() {

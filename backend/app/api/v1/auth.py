@@ -12,6 +12,7 @@ from app.schemas.auth import (
     CompanyRegistrationRequest, UserInfo
 )
 from app.models.user import User
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -79,7 +80,7 @@ def register_company(
 
     user = AuthService.register_company(db, data)
     company = user.company_profile
-    upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "uploads", "company-documents"))
+    upload_dir = settings.UPLOADS_DIR / "company-documents"
     for document_type, document in (("secp", secp_document), ("sap", sap_document), ("ntn", ntn_document)):
         if not document or not document.filename:
             continue

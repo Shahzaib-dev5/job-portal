@@ -6,12 +6,13 @@ from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.application import Application
 from app.models.company import Company
 from app.models.interview import InterviewRequest
 from app.models.job import Job
+from app.models.user import User
 from app.models.student import (
     StudentAchievement,
     StudentCertification,
@@ -32,7 +33,9 @@ from app.schemas.student import (
     StudentProfileUpdateRequest,
 )
 
-UPLOADS_DIR = Path(__file__).resolve().parents[3] / "uploads"
+from app.config import settings
+
+UPLOADS_DIR = settings.UPLOADS_DIR
 
 
 class StudentService:
@@ -40,7 +43,22 @@ class StudentService:
     def get_student_profile(db: Session, user_id: int) -> StudentProfile:
         student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
         if not student:
-            raise HTTPException(status_code=404, detail="Student profile not found")
+            user = db.query(User).filter(User.id == user_id).first()
+            if user and user.role == "student":
+                roll_no = user.email.split("@")[0] if "@" in user.email else user.email
+                student = StudentProfile(
+                    user_id=user.id,
+                    email=user.email,
+                    name=user.name or roll_no,
+                    roll_no=roll_no,
+                    department="Computer Science",
+                    semester="1st"
+                )
+                db.add(student)
+                db.commit()
+                db.refresh(student)
+            else:
+                raise HTTPException(status_code=404, detail="Student profile not found")
         return student
 
     @staticmethod
@@ -92,7 +110,8 @@ class StudentService:
     def remove_resume(db: Session, user_id: int) -> None:
         student = StudentService.get_student_profile(db, user_id)
         if student.resume_path:
-            filepath = UPLOADS_DIR.parent / student.resume_path.lstrip("/")
+            rel_path = student.resume_path.removeprefix("/uploads/") if student.resume_path.startswith("/uploads/") else student.resume_path.lstrip("/")
+            filepath = UPLOADS_DIR / rel_path
             if os.path.exists(filepath):
                 os.remove(filepath)
         student.resume_path = None
@@ -102,7 +121,8 @@ class StudentService:
     def remove_photo(db: Session, user_id: int) -> None:
         student = StudentService.get_student_profile(db, user_id)
         if student.photo_path:
-            filepath = UPLOADS_DIR.parent / student.photo_path.lstrip("/")
+            rel_path = student.photo_path.removeprefix("/uploads/") if student.photo_path.startswith("/uploads/") else student.photo_path.lstrip("/")
+            filepath = UPLOADS_DIR / rel_path
             if os.path.exists(filepath):
                 os.remove(filepath)
         student.photo_path = None
@@ -293,6 +313,7 @@ class StudentService:
     @staticmethod
     def list_published_jobs(
         db: Session,
+        user_id: Optional[int] = None,
         title: Optional[str] = None,
         company_name: Optional[str] = None,
         location: Optional[str] = None,
@@ -317,6 +338,16 @@ class StudentService:
         total = query.count()
         jobs = query.offset((page - 1) * page_size).limit(page_size).all()
 
+        applied_job_ids = set()
+        if user_id:
+            student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
+            if student:
+                app_rows = db.query(Application.job_id).filter(
+                    Application.student_profile_id == student.id,
+                    Application.status != "withdrawn"
+                ).all()
+                applied_job_ids = {r[0] for r in app_rows}
+
         result = []
         for job in jobs:
             result.append({
@@ -334,41 +365,101 @@ class StudentService:
                 "application_deadline": job.application_deadline,
                 "created_at": job.created_at,
                 "updated_at": job.updated_at,
+                "is_applied": job.id in applied_job_ids,
             })
 
         return {"total": total, "items": result, "page": page, "page_size": page_size}
 
     @staticmethod
-    def get_job_detail(db: Session, job_id: int) -> Job:
+    def get_job_detail(db: Session, job_id: int, user_id: Optional[int] = None) -> Dict[str, Any]:
         job = db.query(Job).filter(Job.id == job_id, Job.status == "published").first()
         if not job:
             raise HTTPException(status_code=404, detail="Job not found or not published")
-        return job
+        
+        is_applied = False
+        if user_id:
+            student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
+            if student:
+                existing = db.query(Application).filter(
+                    Application.job_id == job_id,
+                    Application.student_profile_id == student.id,
+                    Application.status != "withdrawn"
+                ).first()
+                if existing:
+                    is_applied = True
+
+        return {
+            "id": job.id,
+            "company_id": job.company_id,
+            "company_name": job.company.company_name if job.company else "",
+            "title": job.title,
+            "description": job.description,
+            "requirements": job.requirements,
+            "location": job.location,
+            "employment_type": job.employment_type,
+            "min_cgpa": float(job.min_cgpa) if job.min_cgpa is not None else None,
+            "salary_min": float(job.salary_min) if job.salary_min is not None else None,
+            "salary_max": float(job.salary_max) if job.salary_max is not None else None,
+            "application_deadline": job.application_deadline,
+            "created_at": job.created_at,
+            "updated_at": job.updated_at,
+            "is_applied": is_applied,
+        }
 
     @staticmethod
-    def apply_to_job(db: Session, user_id: int, job_id: int, application_data: ApplicationCreateRequest) -> Application:
+    def apply_to_job(db: Session, user_id: int, job_id: int, application_data: ApplicationCreateRequest) -> Dict[str, Any]:
         student = StudentService.get_student_profile(db, user_id)
-        job = db.query(Job).filter(Job.id == job_id, Job.status == "published").first()
+        job = (
+            db.query(Job)
+            .options(joinedload(Job.company))
+            .filter(Job.id == job_id, Job.status == "published")
+            .first()
+        )
         if not job:
             raise HTTPException(status_code=404, detail="Job not found or not published")
 
         existing = db.query(Application).filter(Application.job_id == job_id, Application.student_profile_id == student.id).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Already applied to this job")
-        if not student.resume_path:
-            raise HTTPException(status_code=400, detail="Please upload a resume before applying")
+            if existing.status != "withdrawn":
+                raise HTTPException(status_code=400, detail="You have already applied for this job.")
+            else:
+                existing.status = "applied"
+                existing.cover_letter = application_data.cover_letter
+                existing.resume_path = student.resume_path
+                existing.updated_at = datetime.now()
+                db.commit()
+                db.refresh(existing)
+                application = existing
+        else:
+            if not student.resume_path:
+                raise HTTPException(status_code=400, detail="Please upload a resume before applying")
 
-        application = Application(
-            job_id=job_id,
-            student_profile_id=student.id,
-            cover_letter=application_data.cover_letter,
-            resume_path=student.resume_path,
-            status="applied",
-        )
-        db.add(application)
-        db.commit()
-        db.refresh(application)
-        return application
+            application = Application(
+                job_id=job_id,
+                student_profile_id=student.id,
+                cover_letter=application_data.cover_letter,
+                resume_path=student.resume_path,
+                status="applied",
+            )
+            db.add(application)
+            db.commit()
+            db.refresh(application)
+
+        db.refresh(job)
+        company_name = job.company.company_name if (job and job.company) else ""
+        job_title = job.title if job else ""
+
+        return {
+            "id": application.id,
+            "job_id": application.job_id,
+            "job_title": job_title,
+            "company_name": company_name,
+            "cover_letter": application.cover_letter,
+            "resume_path": application.resume_path,
+            "status": application.status,
+            "applied_at": application.created_at.isoformat() if application.created_at else None,
+            "updated_at": application.updated_at.isoformat() if application.updated_at else None,
+        }
 
     @staticmethod
     def list_applications(db: Session, user_id: int, status: Optional[str] = None, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
@@ -390,8 +481,8 @@ class StudentService:
                 "cover_letter": app.cover_letter,
                 "resume_path": app.resume_path,
                 "status": app.status,
-                "applied_at": app.created_at,
-                "updated_at": app.updated_at,
+                "applied_at": app.created_at.isoformat() if app.created_at else None,
+                "updated_at": app.updated_at.isoformat() if app.updated_at else None,
             })
 
         return {"total": total, "items": result, "page": page, "page_size": page_size}
@@ -426,34 +517,78 @@ class StudentService:
                 "job_id": interview.job_id,
                 "job_title": interview.job.title if interview.job else None,
                 "message": interview.message,
-                "interview_date": interview.interview_date,
+                "interview_date": interview.interview_date.isoformat() if interview.interview_date else None,
                 "status": interview.status,
-                "created_at": interview.created_at,
-                "responded_at": interview.responded_at,
+                "created_at": interview.created_at.isoformat() if interview.created_at else None,
+                "responded_at": interview.responded_at.isoformat() if interview.responded_at else None,
             })
 
         return {"total": total, "items": result, "page": page, "page_size": page_size}
 
     @staticmethod
-    def accept_interview_request(db: Session, user_id: int, request_id: int) -> InterviewRequest:
+    def accept_interview_request(db: Session, user_id: int, request_id: int) -> Dict[str, Any]:
         student = StudentService.get_student_profile(db, user_id)
-        interview = db.query(InterviewRequest).filter(InterviewRequest.id == request_id, InterviewRequest.student_profile_id == student.id, InterviewRequest.status == "pending").first()
+        interview = (
+            db.query(InterviewRequest)
+            .options(joinedload(InterviewRequest.company), joinedload(InterviewRequest.job), joinedload(InterviewRequest.application))
+            .filter(InterviewRequest.id == request_id, InterviewRequest.student_profile_id == student.id)
+            .first()
+        )
         if not interview:
             raise HTTPException(status_code=404, detail="Interview request not found")
-        interview.status = "accepted"
-        interview.responded_at = datetime.utcnow()
-        db.commit()
-        db.refresh(interview)
-        return interview
+
+        if interview.status != "accepted":
+            if interview.status in ["declined", "cancelled"]:
+                raise HTTPException(status_code=400, detail=f"Interview request is already {interview.status}")
+            interview.status = "accepted"
+            interview.responded_at = datetime.utcnow()
+            if interview.application:
+                interview.application.status = "interviewed"
+            db.commit()
+            db.refresh(interview)
+
+        return {
+            "id": interview.id,
+            "company_id": interview.company_id,
+            "company_name": interview.company.company_name if interview.company else "",
+            "job_id": interview.job_id,
+            "job_title": interview.job.title if interview.job else "",
+            "message": interview.message,
+            "interview_date": interview.interview_date.isoformat() if interview.interview_date else None,
+            "status": interview.status,
+            "created_at": interview.created_at.isoformat() if interview.created_at else None,
+            "responded_at": interview.responded_at.isoformat() if interview.responded_at else None,
+        }
 
     @staticmethod
-    def decline_interview_request(db: Session, user_id: int, request_id: int) -> InterviewRequest:
+    def decline_interview_request(db: Session, user_id: int, request_id: int) -> Dict[str, Any]:
         student = StudentService.get_student_profile(db, user_id)
-        interview = db.query(InterviewRequest).filter(InterviewRequest.id == request_id, InterviewRequest.student_profile_id == student.id, InterviewRequest.status == "pending").first()
+        interview = (
+            db.query(InterviewRequest)
+            .options(joinedload(InterviewRequest.company), joinedload(InterviewRequest.job))
+            .filter(InterviewRequest.id == request_id, InterviewRequest.student_profile_id == student.id)
+            .first()
+        )
         if not interview:
             raise HTTPException(status_code=404, detail="Interview request not found")
-        interview.status = "declined"
-        interview.responded_at = datetime.utcnow()
-        db.commit()
-        db.refresh(interview)
-        return interview
+
+        if interview.status != "declined":
+            if interview.status in ["accepted", "cancelled"]:
+                raise HTTPException(status_code=400, detail=f"Interview request is already {interview.status}")
+            interview.status = "declined"
+            interview.responded_at = datetime.utcnow()
+            db.commit()
+            db.refresh(interview)
+
+        return {
+            "id": interview.id,
+            "company_id": interview.company_id,
+            "company_name": interview.company.company_name if interview.company else "",
+            "job_id": interview.job_id,
+            "job_title": interview.job.title if interview.job else "",
+            "message": interview.message,
+            "interview_date": interview.interview_date.isoformat() if interview.interview_date else None,
+            "status": interview.status,
+            "created_at": interview.created_at.isoformat() if interview.created_at else None,
+            "responded_at": interview.responded_at.isoformat() if interview.responded_at else None,
+        }

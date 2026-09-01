@@ -8,8 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
             company: '/js/dashboards/company-dashboard.html',
             student: '/js/dashboards/student-dashboard.html'
         };
-        window.location.href = dashboards[user?.role] || '/index.html';
-        return;
+        const target = dashboards[user?.role];
+        if (target) {
+            window.location.href = target;
+            return;
+        } else {
+            Auth.logout();
+            return;
+        }
     }
 
     const app = document.getElementById('app');

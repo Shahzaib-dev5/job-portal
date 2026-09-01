@@ -5,9 +5,13 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+UPLOADS_DIR = PROJECT_ROOT / "uploads"
 
 
 class Settings(BaseSettings):
+    PROJECT_ROOT: Path = PROJECT_ROOT
+    UPLOADS_DIR: Path = UPLOADS_DIR
     PROJECT_NAME: str = "Job Portal API"
     API_V1_PREFIX: str = "/api/v1"
 
