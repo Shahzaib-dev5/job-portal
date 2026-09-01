@@ -1,6 +1,28 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional, List, Any
 from datetime import date, datetime
+
+
+def parse_optional_date(v: Any) -> Optional[date]:
+    if not v:
+        return None
+    if isinstance(v, date):
+        return v
+    if isinstance(v, str):
+        v = v.strip()
+        if not v:
+            return None
+        try:
+            return datetime.strptime(v, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+        for fmt in ("%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d", "%m-%d-%Y", "%d-%m-%Y"):
+            try:
+                return datetime.strptime(v, fmt).date()
+            except ValueError:
+                pass
+    return None
+
 
 # ---------- Profile ----------
 class StudentProfileUpdateRequest(BaseModel):
@@ -49,6 +71,11 @@ class ExperienceCreateRequest(BaseModel):
     end_date: Optional[date] = None
     description: Optional[str] = None
 
+    @field_validator('start_date', 'end_date', mode='before')
+    @classmethod
+    def validate_dates(cls, v):
+        return parse_optional_date(v)
+
 
 class ExperienceUpdateRequest(BaseModel):
     company_name: Optional[str] = None
@@ -56,6 +83,11 @@ class ExperienceUpdateRequest(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     description: Optional[str] = None
+
+    @field_validator('start_date', 'end_date', mode='before')
+    @classmethod
+    def validate_dates(cls, v):
+        return parse_optional_date(v)
 
 
 class ExperienceResponse(BaseModel):
@@ -76,6 +108,11 @@ class CertificationCreateRequest(BaseModel):
     issuer: Optional[str] = None
     issue_date: Optional[date] = None
     expiry_date: Optional[date] = None
+
+    @field_validator('issue_date', 'expiry_date', mode='before')
+    @classmethod
+    def validate_dates(cls, v):
+        return parse_optional_date(v)
 
 
 class CertificationResponse(BaseModel):
@@ -108,11 +145,21 @@ class AchievementCreateRequest(BaseModel):
     description: Optional[str] = None
     date: Optional[date] = None
 
+    @field_validator('date', mode='before')
+    @classmethod
+    def validate_date(cls, v):
+        return parse_optional_date(v)
+
 
 class AchievementUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     date: Optional[date] = None
+
+    @field_validator('date', mode='before')
+    @classmethod
+    def validate_date(cls, v):
+        return parse_optional_date(v)
 
 
 class AchievementResponse(BaseModel):
@@ -154,13 +201,13 @@ class ApplicationCreateRequest(BaseModel):
 class ApplicationResponse(BaseModel):
     id: int
     job_id: int
-    job_title: str
-    company_name: str
-    cover_letter: Optional[str]
-    resume_path: Optional[str]
+    job_title: Optional[str] = ""
+    company_name: Optional[str] = ""
+    cover_letter: Optional[str] = None
+    resume_path: Optional[str] = None
     status: str
-    applied_at: datetime
-    updated_at: datetime
+    applied_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -170,14 +217,14 @@ class ApplicationResponse(BaseModel):
 class InterviewRequestResponse(BaseModel):
     id: int
     company_id: int
-    company_name: str
+    company_name: Optional[str] = ""
     job_id: int
-    job_title: str
-    message: Optional[str]
-    interview_date: Optional[datetime]
+    job_title: Optional[str] = ""
+    message: Optional[str] = None
+    interview_date: Optional[datetime] = None
     status: str
-    created_at: datetime
-    responded_at: Optional[datetime]
+    created_at: Optional[datetime] = None
+    responded_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

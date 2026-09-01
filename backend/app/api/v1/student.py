@@ -1,7 +1,10 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("uvicorn.error")
 
 from app.database import get_db
 from app.models.user import User
@@ -253,6 +256,7 @@ def list_jobs(
 ):
     return StudentService.list_published_jobs(
         db,
+        user_id=current_user.id,
         title=title,
         company_name=company_name,
         location=location,
@@ -262,23 +266,34 @@ def list_jobs(
     )
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", response_model=dict)
 def get_job_detail(
     job_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return StudentService.get_job_detail(db, job_id)
+    return StudentService.get_job_detail(db, job_id, user_id=current_user.id)
 
 
-@router.post("/jobs/{job_id}/apply", response_model=ApplicationResponse)
+@router.post("/jobs/{job_id}/apply", response_model=dict)
 def apply_to_job(
     job_id: int,
     application_data: ApplicationCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return StudentService.apply_to_job(db, current_user.id, job_id, application_data)
+    try:
+        app_data = StudentService.apply_to_job(db, current_user.id, job_id, application_data)
+        return {
+            "success": True,
+            "message": "Application submitted successfully",
+            "data": app_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error applying to job {job_id} for user {current_user.id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to submit application: {str(e)}")
 
 
 @router.get("/me/applications", response_model=dict)
@@ -313,19 +328,41 @@ def list_my_interview_requests(
     return StudentService.list_interview_requests(db, current_user.id, status=status, page=page, page_size=page_size)
 
 
-@router.post("/me/interview-requests/{request_id}/accept", response_model=InterviewRequestResponse)
+@router.post("/me/interview-requests/{request_id}/accept", response_model=dict)
 def accept_interview_request(
     request_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return StudentService.accept_interview_request(db, current_user.id, request_id)
+    try:
+        data = StudentService.accept_interview_request(db, current_user.id, request_id)
+        return {
+            "success": True,
+            "message": "Interview request accepted successfully",
+            "data": data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error accepting interview request {request_id} for user {current_user.id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to accept interview request: {str(e)}")
 
 
-@router.post("/me/interview-requests/{request_id}/decline", response_model=InterviewRequestResponse)
+@router.post("/me/interview-requests/{request_id}/decline", response_model=dict)
 def decline_interview_request(
     request_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return StudentService.decline_interview_request(db, current_user.id, request_id)
+    try:
+        data = StudentService.decline_interview_request(db, current_user.id, request_id)
+        return {
+            "success": True,
+            "message": "Interview request declined successfully",
+            "data": data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error declining interview request {request_id} for user {current_user.id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to decline interview request: {str(e)}")

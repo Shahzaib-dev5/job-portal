@@ -7,13 +7,14 @@ from app.config import settings
 import os
 from pathlib import Path
 
-UPLOADS_DIR = Path(__file__).resolve().parents[3] / 'uploads'
+UPLOADS_DIR = settings.UPLOADS_DIR
 
 app = FastAPI(title=settings.PROJECT_NAME, version='1.0.0')
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -22,6 +23,7 @@ app.add_middleware(
 os.makedirs(UPLOADS_DIR / 'resumes', exist_ok=True)
 os.makedirs(UPLOADS_DIR / 'photos', exist_ok=True)
 os.makedirs(UPLOADS_DIR / 'logos', exist_ok=True)
+os.makedirs(UPLOADS_DIR / 'company-documents', exist_ok=True)
 app.mount('/uploads', StaticFiles(directory=str(UPLOADS_DIR)), name='uploads')
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
