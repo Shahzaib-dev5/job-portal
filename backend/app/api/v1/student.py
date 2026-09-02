@@ -23,8 +23,10 @@ from app.schemas.student import (
     InterviewRequestResponse,
     JobListResponse,
     SkillCreateRequest,
+    SkillUpdateRequest,
     SkillResponse,
     SoftSkillCreateRequest,
+    SoftSkillUpdateRequest,
     SoftSkillResponse,
     StudentProfileResponse,
     StudentProfileUpdateRequest,
@@ -58,7 +60,7 @@ def upload_my_resume(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return {"resume_path": StudentService.upload_resume(db, current_user.id, file)}
+    return StudentService.upload_resume(db, current_user.id, file)
 
 
 @router.delete("/me/resume")
@@ -103,6 +105,16 @@ def add_my_skill(
     db: Session = Depends(get_db),
 ):
     return StudentService.add_skill(db, current_user.id, skill_data)
+
+
+@router.put("/me/skills/{skill_id}", response_model=SkillResponse)
+def update_my_skill(
+    skill_id: int,
+    skill_data: SkillUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return StudentService.update_skill(db, current_user.id, skill_id, skill_data)
 
 
 @router.delete("/me/skills/{skill_id}")
@@ -194,6 +206,16 @@ def add_my_soft_skill(
     db: Session = Depends(get_db),
 ):
     return StudentService.add_soft_skill(db, current_user.id, soft_skill_data)
+
+
+@router.put("/me/soft-skills/{soft_skill_id}", response_model=SoftSkillResponse)
+def update_my_soft_skill(
+    soft_skill_id: int,
+    soft_skill_data: SoftSkillUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return StudentService.update_soft_skill(db, current_user.id, soft_skill_id, soft_skill_data)
 
 
 @router.delete("/me/soft-skills/{soft_skill_id}")

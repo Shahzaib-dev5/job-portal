@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -29,7 +30,9 @@ from app.schemas.student import (
     ExperienceCreateRequest,
     ExperienceUpdateRequest,
     SkillCreateRequest,
+    SkillUpdateRequest,
     SoftSkillCreateRequest,
+    SoftSkillUpdateRequest,
     StudentProfileUpdateRequest,
 )
 
@@ -39,6 +42,19 @@ UPLOADS_DIR = settings.UPLOADS_DIR
 
 
 class StudentService:
+    @staticmethod
+    def is_non_resume_content(text: str) -> bool:
+        """Detect API documentation accidentally submitted as resume content."""
+        normalized = text.lower()
+        markers = (
+            "api documentation",
+            "/web/session/authenticate",
+            "jsonrpc",
+            "odoo returns",
+            "request body",
+        )
+        return sum(marker in normalized for marker in markers) >= 2
+
     @staticmethod
     def get_student_profile(db: Session, user_id: int) -> StudentProfile:
         student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
@@ -64,14 +80,18 @@ class StudentService:
     @staticmethod
     def update_student_profile(db: Session, user_id: int, update_data: StudentProfileUpdateRequest) -> StudentProfile:
         student = StudentService.get_student_profile(db, user_id)
-        if update_data.bio is not None:
-            student.bio = update_data.bio
+        for field, value in update_data.model_dump(exclude_unset=True).items():
+            if isinstance(value, str):
+                value = value.strip() or None
+            if field == "resume_text" and value and StudentService.is_non_resume_content(value):
+                raise HTTPException(status_code=400, detail="API documentation cannot be saved as resume text")
+            setattr(student, field, value)
         db.commit()
         db.refresh(student)
         return student
 
     @staticmethod
-    def upload_resume(db: Session, user_id: int, file: UploadFile) -> str:
+    def upload_resume(db: Session, user_id: int, file: UploadFile) -> dict:
         student = StudentService.get_student_profile(db, user_id)
         allowed_extensions = [".pdf", ".doc", ".docx"]
         ext = os.path.splitext(file.filename)[1].lower()
@@ -85,8 +105,31 @@ class StudentService:
             shutil.copyfileobj(file.file, buffer)
 
         student.resume_path = f"/uploads/resumes/{filename}"
+        extracted_text = StudentService.extract_resume_text(filepath, ext)
+        student.resume_text = "" if StudentService.is_non_resume_content(extracted_text) else extracted_text
         db.commit()
-        return student.resume_path
+        return {"resume_path": student.resume_path, "resume_text": student.resume_text or ""}
+
+    @staticmethod
+    def extract_resume_text(filepath: Path, extension: str) -> str:
+        try:
+            if extension == ".pdf":
+                from pypdf import PdfReader
+                text = "\n".join(page.extract_text() or "" for page in PdfReader(str(filepath)).pages)
+            elif extension == ".docx":
+                from docx import Document
+                document = Document(str(filepath))
+                text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+                text += "\n" + "\n".join(
+                    " | ".join(cell.text for cell in row.cells)
+                    for table in document.tables
+                    for row in table.rows
+                )
+            else:
+                return ""
+        except Exception:
+            return ""
+        return re.sub(r"\n{3,}", "\n\n", text).strip()[:30000]
 
     @staticmethod
     def upload_photo(db: Session, user_id: int, file: UploadFile) -> str:
@@ -141,13 +184,30 @@ class StudentService:
 
         new_skill = StudentSkill(
             student_profile_id=student.id,
+            skill_area=skill_data.skill_area,
             skill_name=skill_data.skill_name,
             proficiency=skill_data.proficiency,
+            proficiency_percent=skill_data.proficiency_percent,
         )
         db.add(new_skill)
         db.commit()
         db.refresh(new_skill)
         return new_skill
+
+    @staticmethod
+    def update_skill(db: Session, user_id: int, skill_id: int, skill_data: SkillUpdateRequest) -> StudentSkill:
+        student = StudentService.get_student_profile(db, user_id)
+        skill = db.query(StudentSkill).filter(
+            StudentSkill.id == skill_id,
+            StudentSkill.student_profile_id == student.id,
+        ).first()
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+        for field, value in skill_data.model_dump(exclude_unset=True).items():
+            setattr(skill, field, value)
+        db.commit()
+        db.refresh(skill)
+        return skill
 
     @staticmethod
     def list_skills(db: Session, user_id: int) -> List[StudentSkill]:
@@ -217,6 +277,7 @@ class StudentService:
             student_profile_id=student.id,
             name=cert_data.name,
             issuer=cert_data.issuer,
+            credential_url=cert_data.credential_url,
             issue_date=cert_data.issue_date,
             expiry_date=cert_data.expiry_date,
         )
@@ -250,7 +311,12 @@ class StudentService:
         if existing:
             raise HTTPException(status_code=400, detail="Soft skill already exists")
 
-        new_skill = StudentSoftSkill(student_profile_id=student.id, skill_name=soft_skill_data.skill_name)
+        new_skill = StudentSoftSkill(
+            student_profile_id=student.id,
+            skill_area=soft_skill_data.skill_area,
+            skill_name=soft_skill_data.skill_name,
+            proficiency_percent=soft_skill_data.proficiency_percent,
+        )
         db.add(new_skill)
         db.commit()
         db.refresh(new_skill)
@@ -260,6 +326,21 @@ class StudentService:
     def list_soft_skills(db: Session, user_id: int) -> List[StudentSoftSkill]:
         student = StudentService.get_student_profile(db, user_id)
         return db.query(StudentSoftSkill).filter(StudentSoftSkill.student_profile_id == student.id).all()
+
+    @staticmethod
+    def update_soft_skill(db: Session, user_id: int, soft_skill_id: int, skill_data: SoftSkillUpdateRequest) -> StudentSoftSkill:
+        student = StudentService.get_student_profile(db, user_id)
+        skill = db.query(StudentSoftSkill).filter(
+            StudentSoftSkill.id == soft_skill_id,
+            StudentSoftSkill.student_profile_id == student.id,
+        ).first()
+        if not skill:
+            raise HTTPException(status_code=404, detail="Soft skill not found")
+        for field, value in skill_data.model_dump(exclude_unset=True).items():
+            setattr(skill, field, value)
+        db.commit()
+        db.refresh(skill)
+        return skill
 
     @staticmethod
     def remove_soft_skill(db: Session, user_id: int, soft_skill_id: int) -> None:

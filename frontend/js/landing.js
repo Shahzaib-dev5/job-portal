@@ -77,23 +77,12 @@ async function handleStudentLogin(event) {
     errorElement.hidden = true;
 
     try {
-        // Try local login first
-        const response = await API.post('/auth/login', { email, password });
+        const response = await API.post('/auth/student/login', { email, password });
         Auth.setAuth(response.access_token, response.user);
         Auth.redirectToDashboard();
-        return;
-    } catch (localErr) {
-        console.info('Landing: local login failed, trying LMS fallback');
-        try {
-            const response2 = await API.post('/auth/student/login', { email, password });
-            Auth.setAuth(response2.access_token, response2.user);
-            Auth.redirectToDashboard();
-            return;
-        } catch (lmsErr) {
-            errorElement.textContent = (localErr && localErr.message) || (lmsErr && lmsErr.message) || 'Unable to sign in';
-            errorElement.hidden = false;
-            return;
-        }
+    } catch (error) {
+        errorElement.textContent = error.message || 'Unable to sign in';
+        errorElement.hidden = false;
     }
 }
 

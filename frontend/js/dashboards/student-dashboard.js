@@ -2,6 +2,69 @@ let currentPage = 1;
 let currentTab = 'profile';
 const pageSize = 10;
 
+const SKILL_CATALOG = {
+    'AI & Data': ['Artificial Intelligence', 'Machine Learning', 'Deep Learning', 'Data Science', 'Data Analysis', 'NLP', 'Computer Vision'],
+    'Development': ['HTML', 'CSS', 'JavaScript', 'React', 'Vue', 'Python', 'Java', 'C++', 'Node.js', 'Django', 'FastAPI', 'SQL'],
+    'Design': ['UI Design', 'UX Design', 'Figma', 'Graphic Design', 'Motion Design', '3D Design'],
+    'Marketing': ['SEO', 'Content Marketing', 'Social Media Marketing', 'Email Marketing', 'Google Ads', 'Market Research'],
+    'Business': ['Project Management', 'Business Analysis', 'Financial Analysis', 'Customer Support', 'Sales'],
+    'Other': ['Microsoft Office', 'Research', 'Technical Writing', 'Video Editing']
+};
+const SOFT_SKILL_CATALOG = {
+    'Communication': ['Communication', 'Presentation', 'Public Speaking', 'Technical Writing'],
+    'Leadership': ['Leadership', 'Team Management', 'Mentoring', 'Decision Making'],
+    'Collaboration': ['Teamwork', 'Problem Solving', 'Critical Thinking', 'Conflict Resolution'],
+    'Work habits': ['Time Management', 'Adaptability', 'Creativity', 'Attention to Detail']
+};
+
+function optionMarkup(values, selected = '') {
+    return values.map(value => `<option value="${escapeHtml(value)}" ${value === selected ? 'selected' : ''}>${escapeHtml(value)}</option>`).join('');
+}
+
+function areaMarkup(catalog, selected = '') {
+    return `<option value="">Select area first</option>${optionMarkup(Object.keys(catalog), selected)}`;
+}
+
+function updateSkillOptions(area, selected = '') {
+    const select = document.getElementById('skill-name');
+    if (!select) return;
+    const catalogOptions = optionMarkup(SKILL_CATALOG[area] || [], selected);
+    const customSelected = selected && !(SKILL_CATALOG[area] || []).includes(selected);
+    select.innerHTML = `<option value="">Select skill</option>${catalogOptions}<option value="__custom__" ${customSelected ? 'selected' : ''}>Other / enter custom skill</option>`;
+    select.disabled = !area;
+    const custom = document.getElementById('skill-custom-name');
+    if (custom) {
+        custom.value = customSelected ? selected : '';
+        custom.hidden = !customSelected;
+        custom.required = customSelected;
+    }
+}
+
+function updateSoftSkillOptions(area, selected = '') {
+    const select = document.getElementById('soft-skill-name');
+    if (!select) return;
+    const catalogOptions = optionMarkup(SOFT_SKILL_CATALOG[area] || [], selected);
+    const customSelected = selected && !(SOFT_SKILL_CATALOG[area] || []).includes(selected);
+    select.innerHTML = `<option value="">Select soft skill</option>${catalogOptions}<option value="__custom__" ${customSelected ? 'selected' : ''}>Other / enter custom soft skill</option>`;
+    select.disabled = !area;
+    const custom = document.getElementById('soft-skill-custom-name');
+    if (custom) {
+        custom.value = customSelected ? selected : '';
+        custom.hidden = !customSelected;
+        custom.required = customSelected;
+    }
+}
+
+function toggleCustomSkill(select, inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const custom = select.value === '__custom__';
+    input.hidden = !custom;
+    input.required = custom;
+    if (!custom) input.value = '';
+    if (custom) input.focus();
+}
+
 // Add CSS for consistent tab heights
 const tabStyles = `
     #tab-content {
@@ -52,7 +115,7 @@ function shell() {
     }
     
     const main = document.createElement('main');
-    main.className = 'mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8';
+    main.className = 'student-dashboard-main mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8';
     main.innerHTML = `
         <!-- Dashboard Header Banner -->
         <div class="mb-8 bg-gradient-to-r from-[#092d52] to-[#061e38] rounded-2xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg border-b-4 border-[#e47b0b]">
@@ -277,7 +340,11 @@ async function renderProfile() {
                                     
                                     <!-- Student Info -->
                                     <div class="text-center sm:text-left flex-1 min-w-0">
-                                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">${escapeHtml(profile.name)}</h2>
+                                        <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                                            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">${escapeHtml(profile.name)}</h2>
+                                            <span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">${escapeHtml(profile.availability || 'Open to opportunities')}</span>
+                                        </div>
+                                        <p class="text-sm font-semibold text-slate-600 mt-1">${escapeHtml(profile.professional_title || 'Add a professional title')}</p>
                                         <p class="text-sm font-semibold text-[#e47b0b] mt-0.5">${escapeHtml(profile.department)}</p>
                                         <div class="mt-2.5 flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-slate-500 font-medium">
                                             <span><i class="bi bi-hash mr-1"></i>${escapeHtml(profile.roll_no)}</span>
@@ -285,20 +352,46 @@ async function renderProfile() {
                                             <span><i class="bi bi-journal-bookmark mr-1"></i>Semester ${escapeHtml(profile.semester)}</span>
                                             <span class="hidden sm:inline text-slate-300">|</span>
                                             <span><i class="bi bi-envelope mr-1"></i>${escapeHtml(profile.email)}</span>
+                                            ${profile.location ? `<span class="hidden sm:inline text-slate-300">|</span><span><i class="bi bi-geo-alt mr-1"></i>${escapeHtml(profile.location)}</span>` : ''}
                                         </div>
                                     </div>
+                                    <button onclick="editProfileDetails()" class="self-start rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-[#092d52] hover:border-[#e47b0b] hover:bg-orange-50 transition-colors">
+                                        <i class="bi bi-pencil-square mr-1"></i> Edit profile
+                                    </button>
                                 </div>
                                 
                                 <!-- Professional Bio -->
                                 <div class="mt-8 pt-6 border-t border-slate-100">
                                     <div class="flex justify-between items-center mb-2">
                                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Professional Bio</h3>
-                                        <button onclick="editBio(${JSON.stringify(profile.bio || '')})" class="text-xs font-bold text-[#092d52] hover:text-[#e47b0b] flex items-center gap-1 transition-colors">
+                                        <button onclick="editProfileDetails()" class="text-xs font-bold text-[#092d52] hover:text-[#e47b0b] flex items-center gap-1 transition-colors">
                                             <i class="bi bi-pencil-square"></i> Edit
                                         </button>
                                     </div>
                                     <p class="text-slate-700 text-sm leading-relaxed">${escapeHtml(profile.bio || 'No professional bio added yet. Click Edit to add one and showcase your career goals.')}</p>
                                 </div>
+                            </div>
+                        </section>
+
+                        <!-- Marketplace Profile Details -->
+                        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                            <div class="flex items-center justify-between gap-4">
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2"><i class="bi bi-person-badge text-xl text-[#092d52]"></i> Marketplace profile</h3>
+                                    <p class="mt-1 text-xs text-slate-500">Help employers understand what you offer and how to contact you.</p>
+                                </div>
+                                <button onclick="editProfileDetails()" class="rounded-lg bg-[#092d52] px-3 py-2 text-xs font-bold text-white hover:bg-[#061e38]"><i class="bi bi-pencil mr-1"></i> Edit</button>
+                            </div>
+                            <div class="mt-5 grid gap-4 sm:grid-cols-3">
+                                <div><span class="profile-meta-label">Availability</span><strong class="profile-meta-value">${escapeHtml(profile.availability || 'Not set')}</strong></div>
+                                <div><span class="profile-meta-label">Hourly rate</span><strong class="profile-meta-value">${profile.hourly_rate ? `$${Number(profile.hourly_rate).toFixed(2)} / hr` : 'Not set'}</strong></div>
+                                <div><span class="profile-meta-label">Languages</span><strong class="profile-meta-value">${escapeHtml(profile.languages || 'Not set')}</strong></div>
+                            </div>
+                            <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-4">
+                                ${profile.portfolio_url ? `<a href="${escapeHtml(profile.portfolio_url)}" target="_blank" rel="noopener" class="profile-link"><i class="bi bi-globe2"></i> Portfolio</a>` : ''}
+                                ${profile.github_url ? `<a href="${escapeHtml(profile.github_url)}" target="_blank" rel="noopener" class="profile-link"><i class="bi bi-github"></i> GitHub</a>` : ''}
+                                ${profile.linkedin_url ? `<a href="${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener" class="profile-link"><i class="bi bi-linkedin"></i> LinkedIn</a>` : ''}
+                                ${!profile.portfolio_url && !profile.github_url && !profile.linkedin_url ? '<span class="text-xs text-slate-400">Add portfolio links to showcase your work.</span>' : ''}
                             </div>
                         </section>
                         
@@ -340,7 +433,7 @@ async function renderProfile() {
                                 </div>
                             `}
                         </section>
-                        
+
                         <!-- Experiences Card -->
                         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                             <div class="flex justify-between items-center mb-6">
@@ -440,13 +533,13 @@ async function renderProfile() {
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 ${skills.length > 0 ? skills.map(item => `
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-[#092d52]/5 border border-[#092d52]/10 px-2.5 py-1 text-xs font-semibold text-[#092d52]">
-                                        <span>${escapeHtml(item.skill_name)}</span>
-                                        ${item.proficiency ? `<span class="text-[9px] text-slate-400 font-normal">(${escapeHtml(item.proficiency)})</span>` : ''}
-                                        <button onclick="deleteSkill(${item.id}, '${item.skill_name}')" class="text-slate-400 hover:text-rose-600 transition-colors ml-1" title="Delete">
-                                            <i class="bi bi-x text-sm"></i>
-                                        </button>
-                                    </span>
+                                    <div class="skill-item rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="min-w-0"><p class="truncate text-sm font-semibold text-[#092d52]">${escapeHtml(item.skill_name)}</p><p class="text-[10px] uppercase tracking-wide text-slate-400">${escapeHtml(item.skill_area || 'Other')} · ${escapeHtml(item.proficiency || 'Proficiency not set')}</p></div>
+                                            <div class="flex shrink-0 gap-1"><button onclick="showSkillModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="p-1.5 text-slate-400 hover:text-[#092d52]" title="Edit skill"><i class="bi bi-pencil-fill text-xs"></i></button><button onclick="deleteSkill(${item.id}, '${escapeHtml(item.skill_name)}')" class="p-1.5 text-slate-400 hover:text-rose-600" title="Delete skill"><i class="bi bi-trash-fill text-xs"></i></button></div>
+                                        </div>
+                                        <div class="mt-2 flex items-center gap-2"><div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-200"><div class="h-full rounded-full bg-[#e47b0b]" style="width:${item.proficiency_percent ?? 0}%"></div></div><span class="w-9 text-right text-xs font-bold text-slate-500">${item.proficiency_percent ?? 0}%</span></div>
+                                    </div>
                                 `).join('') : `
                                     <p class="text-xs text-slate-400">No technical skills added yet.</p>
                                 `}
@@ -465,12 +558,10 @@ async function renderProfile() {
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 ${softSkills.length > 0 ? softSkills.map(item => `
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-[#e47b0b]/5 border border-[#e47b0b]/15 px-2.5 py-1 text-xs font-semibold text-[#e47b0b]">
-                                        <span>${escapeHtml(item.skill_name)}</span>
-                                        <button onclick="deleteSoftSkill(${item.id}, '${item.skill_name}')" class="text-slate-400 hover:text-rose-600 transition-colors ml-1" title="Delete">
-                                            <i class="bi bi-x text-sm"></i>
-                                        </button>
-                                    </span>
+                                    <div class="skill-item rounded-xl border border-orange-100 bg-orange-50/40 p-3">
+                                        <div class="flex items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-semibold text-[#e47b0b]">${escapeHtml(item.skill_name)}</p><p class="text-[10px] uppercase tracking-wide text-slate-400">${escapeHtml(item.skill_area || 'Other')}</p></div><div class="flex shrink-0 gap-1"><button onclick="showSoftSkillModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="p-1.5 text-slate-400 hover:text-[#e47b0b]" title="Edit soft skill"><i class="bi bi-pencil-fill text-xs"></i></button><button onclick="deleteSoftSkill(${item.id}, '${escapeHtml(item.skill_name)}')" class="p-1.5 text-slate-400 hover:text-rose-600" title="Delete soft skill"><i class="bi bi-trash-fill text-xs"></i></button></div></div>
+                                        <div class="mt-2 flex items-center gap-2"><div class="h-2 flex-1 overflow-hidden rounded-full bg-orange-100"><div class="h-full rounded-full bg-[#e47b0b]" style="width:${item.proficiency_percent ?? 0}%"></div></div><span class="w-9 text-right text-xs font-bold text-slate-500">${item.proficiency_percent ?? 0}%</span></div>
+                                    </div>
                                 `).join('') : `
                                     <p class="text-xs text-slate-400">No soft skills added yet.</p>
                                 `}
@@ -500,6 +591,7 @@ async function renderProfile() {
                                                         ${formatDate(cert.issue_date)}${cert.expiry_date ? ` - ${formatDate(cert.expiry_date)}` : ''}
                                                     </p>
                                                 ` : ''}
+                                                ${cert.credential_url ? `<a href="${escapeHtml(cert.credential_url)}" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-[#092d52] hover:text-[#e47b0b]"><i class="bi bi-box-arrow-up-right"></i> View credential</a>` : ''}
                                             </div>
                                             <button onclick="deleteCertification(${cert.id}, '${cert.name}')" class="absolute right-3 top-3.5 text-slate-400 hover:text-rose-600 transition-colors" title="Delete">
                                                 <i class="bi bi-trash-fill text-xs"></i>
@@ -532,6 +624,39 @@ function editBio(bio) {
         const val = document.getElementById('profile-bio-input').value;
         await API.put('/students/me', { bio: val });
         showToast('Bio updated successfully');
+        renderProfile();
+    });
+}
+
+async function editProfileDetails() {
+    const profile = await API.get('/students/me');
+    const formHtml = `
+        <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block text-sm font-semibold text-slate-700">Professional title<input id="market-title" value="${escapeHtml(profile.professional_title || '')}" placeholder="Frontend developer" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+            <label class="block text-sm font-semibold text-slate-700">Location<input id="market-location" value="${escapeHtml(profile.location || '')}" placeholder="Lahore, Pakistan" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+            <label class="block text-sm font-semibold text-slate-700">Hourly rate (USD)<input id="market-rate" type="number" min="0" step="0.01" value="${profile.hourly_rate || ''}" placeholder="25" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+            <label class="block text-sm font-semibold text-slate-700">Availability<select id="market-availability" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option value="">Select availability</option><option ${profile.availability === 'Available now' ? 'selected' : ''}>Available now</option><option ${profile.availability === 'Part-time' ? 'selected' : ''}>Part-time</option><option ${profile.availability === 'Not available' ? 'selected' : ''}>Not available</option></select></label>
+            <label class="block text-sm font-semibold text-slate-700 sm:col-span-2">Languages<input id="market-languages" value="${escapeHtml(profile.languages || '')}" placeholder="English, Urdu, Punjabi" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+            <label class="block text-sm font-semibold text-slate-700 sm:col-span-2">Professional bio<textarea id="market-bio" class="mt-1 h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Describe your strengths, experience, and goals">${escapeHtml(profile.bio || '')}</textarea></label>
+            <label class="block text-sm font-semibold text-slate-700">Portfolio URL<input id="market-portfolio" type="url" value="${escapeHtml(profile.portfolio_url || '')}" placeholder="https://yourportfolio.com" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+            <label class="block text-sm font-semibold text-slate-700">GitHub URL<input id="market-github" type="url" value="${escapeHtml(profile.github_url || '')}" placeholder="https://github.com/username" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+            <label class="block text-sm font-semibold text-slate-700 sm:col-span-2">LinkedIn URL<input id="market-linkedin" type="url" value="${escapeHtml(profile.linkedin_url || '')}" placeholder="https://linkedin.com/in/username" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
+        </div>
+    `;
+    showModal('Edit marketplace profile', formHtml, async () => {
+        const rate = document.getElementById('market-rate').value;
+        await API.put('/students/me', {
+            professional_title: document.getElementById('market-title').value,
+            location: document.getElementById('market-location').value,
+            hourly_rate: rate ? Number(rate) : null,
+            availability: document.getElementById('market-availability').value,
+            languages: document.getElementById('market-languages').value,
+            bio: document.getElementById('market-bio').value,
+            portfolio_url: document.getElementById('market-portfolio').value,
+            github_url: document.getElementById('market-github').value,
+            linkedin_url: document.getElementById('market-linkedin').value
+        });
+        showToast('Profile updated successfully');
         renderProfile();
     });
 }
@@ -583,31 +708,53 @@ function deleteResume() {
 }
 
 // Skill Modal Form
-function showSkillModal() {
+function showSkillModal(skill = null) {
+    const isEdit = Boolean(skill);
     const formHtml = `
         <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Skill Name <span class="text-rose-500">*</span></label>
-            <input type="text" id="skill-name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#e47b0b] focus:border-[#e47b0b] outline-none text-sm">
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Skill area <span class="text-rose-500">*</span></label>
+            <select id="skill-area" required onchange="updateSkillOptions(this.value)" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option value="">Select area first</option>${optionMarkup(Object.keys(SKILL_CATALOG), skill?.skill_area || '')}</select>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Skill <span class="text-rose-500">*</span></label>
+            <select id="skill-name" required onchange="toggleCustomSkill(this, 'skill-custom-name')" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option value="">Select skill</option></select>
+            <input id="skill-custom-name" type="text" hidden placeholder="Enter your skill" class="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
         </div>
         <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1">Proficiency</label>
             <select id="skill-proficiency" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#e47b0b] focus:border-[#e47b0b] outline-none text-sm">
                 <option value="">Select proficiency</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Expert">Expert</option>
+                <option value="beginner" ${skill?.proficiency === 'beginner' ? 'selected' : ''}>Beginner</option>
+                <option value="intermediate" ${skill?.proficiency === 'intermediate' ? 'selected' : ''}>Intermediate</option>
+                <option value="advanced" ${skill?.proficiency === 'advanced' ? 'selected' : ''}>Advanced</option>
+                <option value="expert" ${skill?.proficiency === 'expert' ? 'selected' : ''}>Expert</option>
             </select>
         </div>
+        <div>
+            <div class="mb-1 flex items-center justify-between"><label for="skill-percent" class="block text-sm font-semibold text-slate-700">Skill percentage</label><output id="skill-percent-value" class="text-sm font-bold text-[#e47b0b]">${skill?.proficiency_percent ?? 0}%</output></div>
+            <input id="skill-percent" type="range" min="0" max="100" step="1" value="${skill?.proficiency_percent ?? 0}" class="w-full accent-[#e47b0b]">
+        </div>
     `;
-    showModal('Add Skill', formHtml, async () => {
+    showModal(isEdit ? 'Edit Skill' : 'Add Skill', formHtml, async () => {
         const body = {
-            skill_name: document.getElementById('skill-name').value,
-            proficiency: document.getElementById('skill-proficiency').value || null
+            skill_area: document.getElementById('skill-area').value,
+            skill_name: document.getElementById('skill-name').value === '__custom__' ? document.getElementById('skill-custom-name').value.trim() : document.getElementById('skill-name').value,
+            proficiency: document.getElementById('skill-proficiency').value || null,
+            proficiency_percent: Number(document.getElementById('skill-percent').value)
         };
-        await API.post('/students/me/skills', body);
-        showToast('Skill added successfully');
+        if (isEdit) {
+            await API.put(`/students/me/skills/${skill.id}`, { skill_area: body.skill_area, proficiency: body.proficiency, proficiency_percent: body.proficiency_percent });
+            showToast('Skill updated successfully');
+        } else {
+            await API.post('/students/me/skills', body);
+            showToast('Skill added successfully');
+        }
         renderProfile();
     });
+    const range = document.getElementById('skill-percent');
+    const output = document.getElementById('skill-percent-value');
+    if (range && output) range.addEventListener('input', () => { output.value = `${range.value}%`; output.textContent = `${range.value}%`; });
+    if (skill?.skill_area) updateSkillOptions(skill.skill_area, skill.skill_name);
 }
 
 // Delete Skill Confirmation
@@ -620,21 +767,41 @@ function deleteSkill(id, name) {
 }
 
 // Soft Skill Modal Form
-function showSoftSkillModal() {
+function showSoftSkillModal(skill = null) {
     const formHtml = `
         <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Soft Skill Name <span class="text-rose-500">*</span></label>
-            <input type="text" id="soft-skill-name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#e47b0b] focus:border-[#e47b0b] outline-none text-sm">
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Soft skill area <span class="text-rose-500">*</span></label>
+            <select id="soft-skill-area" required onchange="updateSoftSkillOptions(this.value)" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option value="">Select area first</option>${optionMarkup(Object.keys(SOFT_SKILL_CATALOG), skill?.skill_area || '')}</select>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Soft skill <span class="text-rose-500">*</span></label>
+            <select id="soft-skill-name" required onchange="toggleCustomSkill(this, 'soft-skill-custom-name')" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option value="">Select soft skill</option></select>
+            <input id="soft-skill-custom-name" type="text" hidden placeholder="Enter your soft skill" class="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+        </div>
+        <div>
+            <div class="mb-1 flex items-center justify-between"><label for="soft-skill-percent" class="block text-sm font-semibold text-slate-700">Skill percentage</label><output id="soft-skill-percent-value" class="text-sm font-bold text-[#e47b0b]">${skill?.proficiency_percent ?? 0}%</output></div>
+            <input id="soft-skill-percent" type="range" min="0" max="100" step="1" value="${skill?.proficiency_percent ?? 0}" class="w-full accent-[#e47b0b]">
         </div>
     `;
-    showModal('Add Soft Skill', formHtml, async () => {
+    showModal(skill ? 'Edit Soft Skill' : 'Add Soft Skill', formHtml, async () => {
         const body = {
-            skill_name: document.getElementById('soft-skill-name').value
+            skill_area: document.getElementById('soft-skill-area').value,
+            proficiency_percent: Number(document.getElementById('soft-skill-percent').value),
+            skill_name: document.getElementById('soft-skill-name').value === '__custom__' ? document.getElementById('soft-skill-custom-name').value.trim() : document.getElementById('soft-skill-name').value
         };
-        await API.post('/students/me/soft-skills', body);
-        showToast('Soft skill added successfully');
+        if (skill) {
+            await API.put(`/students/me/soft-skills/${skill.id}`, { skill_area: body.skill_area, proficiency_percent: body.proficiency_percent });
+            showToast('Soft skill updated successfully');
+        } else {
+            await API.post('/students/me/soft-skills', body);
+            showToast('Soft skill added successfully');
+        }
         renderProfile();
     });
+    const range = document.getElementById('soft-skill-percent');
+    const output = document.getElementById('soft-skill-percent-value');
+    if (range && output) range.addEventListener('input', () => { output.value = `${range.value}%`; output.textContent = `${range.value}%`; });
+    if (skill?.skill_area) updateSoftSkillOptions(skill.skill_area, skill.skill_name);
 }
 
 // Delete Soft Skill Confirmation
@@ -699,8 +866,12 @@ function showCertificationModal() {
             <input type="text" id="cert-name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#e47b0b] focus:border-[#e47b0b] outline-none text-sm">
         </div>
         <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Issuer</label>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Organization / Issuer</label>
             <input type="text" id="cert-issuer" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#e47b0b] focus:border-[#e47b0b] outline-none text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Credential link <span class="text-xs font-normal text-slate-400">(optional)</span></label>
+            <input type="url" id="cert-link" placeholder="https://example.com/verify" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#e47b0b] focus:border-[#e47b0b] outline-none text-sm">
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -717,6 +888,7 @@ function showCertificationModal() {
         const body = {
             name: document.getElementById('cert-name').value,
             issuer: document.getElementById('cert-issuer').value || null,
+            credential_url: document.getElementById('cert-link').value || null,
             issue_date: formatDateForAPI(document.getElementById('cert-issue-date').value),
             expiry_date: formatDateForAPI(document.getElementById('cert-expiry-date').value)
         };

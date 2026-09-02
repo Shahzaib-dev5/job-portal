@@ -1,12 +1,12 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Any
-from datetime import date, datetime
+from datetime import date as date_type, datetime
 
 
-def parse_optional_date(v: Any) -> Optional[date]:
+def parse_optional_date(v: Any) -> Optional[date_type]:
     if not v:
         return None
-    if isinstance(v, date):
+    if isinstance(v, date_type):
         return v
     if isinstance(v, str):
         v = v.strip()
@@ -26,7 +26,16 @@ def parse_optional_date(v: Any) -> Optional[date]:
 
 # ---------- Profile ----------
 class StudentProfileUpdateRequest(BaseModel):
+    professional_title: Optional[str] = None
+    location: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    availability: Optional[str] = None
+    languages: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    github_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
     bio: Optional[str] = None
+    resume_text: Optional[str] = None
 
 
 class StudentProfileResponse(BaseModel):
@@ -38,7 +47,16 @@ class StudentProfileResponse(BaseModel):
     department: str
     semester: str
     email: EmailStr
+    professional_title: Optional[str]
+    location: Optional[str]
+    hourly_rate: Optional[float]
+    availability: Optional[str]
+    languages: Optional[str]
+    portfolio_url: Optional[str]
+    github_url: Optional[str]
+    linkedin_url: Optional[str]
     bio: Optional[str]
+    resume_text: Optional[str]
     resume_path: Optional[str]
     photo_path: Optional[str]
     created_at: datetime
@@ -50,14 +68,24 @@ class StudentProfileResponse(BaseModel):
 
 # ---------- Skills ----------
 class SkillCreateRequest(BaseModel):
-    skill_name: str
+    skill_area: Optional[str] = None
+    skill_name: str = Field(min_length=1, max_length=100)
     proficiency: Optional[str] = None
+    proficiency_percent: Optional[int] = Field(default=None, ge=0, le=100)
+
+
+class SkillUpdateRequest(BaseModel):
+    skill_area: Optional[str] = None
+    proficiency: Optional[str] = None
+    proficiency_percent: Optional[int] = Field(default=None, ge=0, le=100)
 
 
 class SkillResponse(BaseModel):
     id: int
+    skill_area: Optional[str]
     skill_name: str
     proficiency: Optional[str]
+    proficiency_percent: Optional[int]
 
     class Config:
         from_attributes = True
@@ -67,8 +95,8 @@ class SkillResponse(BaseModel):
 class ExperienceCreateRequest(BaseModel):
     company_name: str
     title: str
-    start_date: date
-    end_date: Optional[date] = None
+    start_date: date_type
+    end_date: Optional[date_type] = None
     description: Optional[str] = None
 
     @field_validator('start_date', 'end_date', mode='before')
@@ -80,8 +108,8 @@ class ExperienceCreateRequest(BaseModel):
 class ExperienceUpdateRequest(BaseModel):
     company_name: Optional[str] = None
     title: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start_date: Optional[date_type] = None
+    end_date: Optional[date_type] = None
     description: Optional[str] = None
 
     @field_validator('start_date', 'end_date', mode='before')
@@ -94,8 +122,8 @@ class ExperienceResponse(BaseModel):
     id: int
     company_name: str
     title: str
-    start_date: date
-    end_date: Optional[date]
+    start_date: date_type
+    end_date: Optional[date_type]
     description: Optional[str]
 
     class Config:
@@ -106,8 +134,9 @@ class ExperienceResponse(BaseModel):
 class CertificationCreateRequest(BaseModel):
     name: str
     issuer: Optional[str] = None
-    issue_date: Optional[date] = None
-    expiry_date: Optional[date] = None
+    credential_url: Optional[str] = None
+    issue_date: Optional[date_type] = None
+    expiry_date: Optional[date_type] = None
 
     @field_validator('issue_date', 'expiry_date', mode='before')
     @classmethod
@@ -119,8 +148,9 @@ class CertificationResponse(BaseModel):
     id: int
     name: str
     issuer: Optional[str]
-    issue_date: Optional[date]
-    expiry_date: Optional[date]
+    credential_url: Optional[str]
+    issue_date: Optional[date_type]
+    expiry_date: Optional[date_type]
 
     class Config:
         from_attributes = True
@@ -128,12 +158,21 @@ class CertificationResponse(BaseModel):
 
 # ---------- Soft Skills ----------
 class SoftSkillCreateRequest(BaseModel):
-    skill_name: str
+    skill_area: Optional[str] = None
+    skill_name: str = Field(min_length=1, max_length=100)
+    proficiency_percent: Optional[int] = Field(default=None, ge=0, le=100)
+
+
+class SoftSkillUpdateRequest(BaseModel):
+    skill_area: Optional[str] = None
+    proficiency_percent: Optional[int] = Field(default=None, ge=0, le=100)
 
 
 class SoftSkillResponse(BaseModel):
     id: int
+    skill_area: Optional[str]
     skill_name: str
+    proficiency_percent: Optional[int]
 
     class Config:
         from_attributes = True
@@ -143,7 +182,7 @@ class SoftSkillResponse(BaseModel):
 class AchievementCreateRequest(BaseModel):
     title: str
     description: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[date_type] = None
 
     @field_validator('date', mode='before')
     @classmethod
@@ -154,7 +193,7 @@ class AchievementCreateRequest(BaseModel):
 class AchievementUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[date_type] = None
 
     @field_validator('date', mode='before')
     @classmethod
@@ -166,7 +205,7 @@ class AchievementResponse(BaseModel):
     id: int
     title: str
     description: Optional[str]
-    date: Optional[date]
+    date: Optional[date_type]
 
     class Config:
         from_attributes = True
@@ -185,7 +224,7 @@ class JobListResponse(BaseModel):
     min_cgpa: Optional[float]
     salary_min: Optional[float]
     salary_max: Optional[float]
-    application_deadline: Optional[date]
+    application_deadline: Optional[date_type]
     created_at: datetime
     updated_at: datetime
 

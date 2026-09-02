@@ -71,6 +71,84 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 #app { display: flex; flex-direction: column; flex: 1; }
 .site-footer { position: relative; margin-top: auto; padding: 42px 5vw 18px; color: #d8e4f0; background: var(--navy-deep); font-family: 'Trebuchet MS', Arial, sans-serif; box-shadow: 0 -6px 22px rgba(4, 25, 47, 0.15); }
 body.dashboard-page-body { padding-bottom: 0; }
+.student-dashboard-navbar,
+.company-dashboard-navbar {
+	position: fixed !important;
+	top: 0;
+	right: 0;
+	left: 0;
+	z-index: 1100;
+	width: 100%;
+}
+.student-dashboard-main,
+.company-dashboard-main {
+	width: 100%;
+	min-width: 0;
+	padding-top: 88px !important;
+}
+.company-dashboard-main {
+	color: #153653;
+}
+.company-dashboard-banner {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 24px;
+	margin-bottom: 24px;
+	padding: 32px;
+	border-bottom: 4px solid var(--orange);
+	border-radius: 16px;
+	color: #fff;
+	background: linear-gradient(120deg, var(--navy), var(--navy-deep));
+	box-shadow: 0 10px 25px rgba(9, 45, 82, .14);
+}
+.company-dashboard-banner .dashboard-kicker { color: #ffc16c; }
+.company-dashboard-banner h1 { margin: 8px 0 0; font-size: 32px; line-height: 1.1; }
+.company-dashboard-banner p:not(.dashboard-kicker) { margin: 9px 0 0; color: #dbe7f2; font: 14px/1.5 'Trebuchet MS', Arial, sans-serif; }
+.company-dashboard-banner > a { flex: 0 0 auto; color: #fff; text-decoration: none; font: 700 13px 'Trebuchet MS', Arial, sans-serif; }
+.company-dashboard-banner > a:hover { color: #ffc16c; }
+.company-dashboard-tabs {
+	display: flex;
+	gap: 8px;
+	overflow-x: auto;
+	margin-bottom: 24px;
+	padding: 8px;
+	border: 1px solid #e2e8f0;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: 0 3px 12px rgba(13, 40, 67, .06);
+}
+.company-dashboard-tabs .tab-btn {
+	padding: 10px 16px;
+	border: 1px solid transparent;
+	border-radius: 9px;
+	color: #61738a;
+	background: transparent;
+	cursor: pointer;
+	white-space: nowrap;
+	font: 700 13px 'Trebuchet MS', Arial, sans-serif;
+}
+.company-dashboard-tabs .tab-btn:hover { background: #f8fafc; color: var(--navy); }
+.company-dashboard-tabs .tab-btn.active { border-color: var(--orange); color: #fff; background: var(--navy); }
+.company-dashboard-main #tab-content > section,
+.company-dashboard-main #tab-content > article {
+	border-radius: 16px;
+	border-color: #e2e8f0;
+	box-shadow: 0 6px 18px rgba(13, 40, 67, .07);
+}
+.company-dashboard-main .profile-card { border-top-width: 4px; border-radius: 16px; }
+.company-dashboard-main .profile-card-header { padding: 28px 30px; }
+.company-dashboard-main .profile-details { padding: 28px 30px; }
+.company-dashboard-main .dashboard-button-primary { background: var(--navy); }
+.company-dashboard-main .dashboard-button-primary:hover { background: #124574; }
+.company-dashboard-main .dashboard-button-secondary:hover { border-color: var(--orange); }
+.company-dashboard-main input:focus,
+.company-dashboard-main select:focus,
+.company-dashboard-main textarea:focus { border-color: var(--orange); outline: none; box-shadow: 0 0 0 3px rgba(228, 123, 11, .14); }
+.profile-meta-label { display: block; color: #61738a; font: 10px 'Trebuchet MS', Arial, sans-serif; letter-spacing: .7px; text-transform: uppercase; }
+.profile-meta-value { display: block; margin-top: 5px; color: #153653; font: 700 13px 'Trebuchet MS', Arial, sans-serif; overflow-wrap: anywhere; }
+.profile-link { display: inline-flex; align-items: center; gap: 6px; color: #092d52; text-decoration: none; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.profile-link:hover { color: #e47b0b; }
 .footer-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 45px; max-width: 1180px; margin: auto; }
 .footer-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; color: #fff; }
 .footer-logo { width: 52px; height: 52px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); padding: 5px; box-shadow: 0 4px 12px rgba(255,255,255,0.08); transition: none !important; }
@@ -269,6 +347,10 @@ body.dashboard-page-body { padding-bottom: 0; }
 	.register-submit { width: 100%; }
 	.registration-message { padding: 0 22px 24px; }
 	.dashboard-main { padding-top: 40px; }
+	.company-dashboard-banner { align-items: flex-start; flex-direction: column; padding: 24px 20px; }
+	.company-dashboard-banner h1 { font-size: 28px; }
+	.company-dashboard-tabs { gap: 4px; }
+	.company-dashboard-tabs .tab-btn { padding-right: 13px; padding-left: 13px; }
 	.dashboard-stats { grid-template-columns: 1fr; gap: 12px; }
 	.dashboard-heading { align-items: flex-start; flex-direction: column; }
 	.dashboard-heading h1 { font-size: 35px; }

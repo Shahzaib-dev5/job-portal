@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Date, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -16,7 +16,16 @@ class StudentProfile(Base):
     department = Column(String(100), nullable=False)
     semester = Column(String(20), nullable=False)
     email = Column(String(255), nullable=False)
+    professional_title = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)
+    hourly_rate = Column(Numeric(10, 2), nullable=True)
+    availability = Column(String(50), nullable=True)
+    languages = Column(String(500), nullable=True)
+    portfolio_url = Column(String(500), nullable=True)
+    github_url = Column(String(500), nullable=True)
+    linkedin_url = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
+    resume_text = Column(Text, nullable=True)
     resume_path = Column(String(500), nullable=True)
     photo_path = Column(String(500), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -37,8 +46,10 @@ class StudentSkill(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     student_profile_id = Column(BigInteger, ForeignKey('student_profiles.id'), nullable=False)
+    skill_area = Column(String(100), nullable=True)
     skill_name = Column(String(100), nullable=False)
     proficiency = Column(Enum('beginner', 'intermediate', 'advanced', 'expert'), nullable=True)
+    proficiency_percent = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
     student_profile = relationship("StudentProfile", back_populates="skills")
@@ -67,6 +78,7 @@ class StudentCertification(Base):
     student_profile_id = Column(BigInteger, ForeignKey('student_profiles.id'), nullable=False)
     name = Column(String(255), nullable=False)
     issuer = Column(String(255), nullable=True)
+    credential_url = Column(String(500), nullable=True)
     issue_date = Column(Date, nullable=True)
     expiry_date = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -79,7 +91,9 @@ class StudentSoftSkill(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     student_profile_id = Column(BigInteger, ForeignKey('student_profiles.id'), nullable=False)
+    skill_area = Column(String(100), nullable=True)
     skill_name = Column(String(100), nullable=False)
+    proficiency_percent = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
     student_profile = relationship("StudentProfile", back_populates="soft_skills")
