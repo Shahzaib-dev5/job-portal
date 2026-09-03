@@ -136,6 +136,39 @@ body.dashboard-page-body { padding-bottom: 0; }
 	border-color: #e2e8f0;
 	box-shadow: 0 6px 18px rgba(13, 40, 67, .07);
 }
+.company-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin: 0 0 16px; color: #718399; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.company-breadcrumb button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; color: var(--navy); background: transparent; cursor: pointer; font: inherit; }
+.company-breadcrumb button:hover { color: var(--orange); }
+.company-breadcrumb span { color: #718399; }
+.company-breadcrumb > i { color: #aab8c6; font-size: 10px; }
+.job-modal .company-breadcrumb { margin: 0 0 4px; }
+.job-composer { overflow: hidden; border: 1px solid #dce5ed; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(13, 40, 67, .08); }
+.job-composer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 30px 34px; color: #fff; background: linear-gradient(120deg, var(--navy), var(--navy-deep)); border-bottom: 4px solid var(--orange); }
+.job-composer-header h2 { margin: 5px 0 0; font-size: 28px; }
+.job-composer-header p:not(.dashboard-kicker) { margin: 8px 0 0; color: #dbe7f2; font: 13px/1.5 'Trebuchet MS', Arial, sans-serif; }
+.job-composer-header .dashboard-kicker { margin: 0; color: #ffc16c; font: 700 11px 'Trebuchet MS', Arial, sans-serif; letter-spacing: 1.4px; text-transform: uppercase; }
+.draft-save-status { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; color: #e5f3e9; background: rgba(255,255,255,.1); font: 700 11px 'Trebuchet MS', Arial, sans-serif; }
+.job-composer-form { padding: 4px 34px 30px; }
+.job-composer-section { padding: 28px 0; border-bottom: 1px solid #e6edf2; }
+.job-section-heading { display: flex; gap: 13px; margin-bottom: 20px; }
+.job-section-heading > span { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; color: #fff; background: var(--orange); border-radius: 50%; font: 700 11px 'Trebuchet MS', Arial, sans-serif; }
+.job-section-heading h3 { margin: 0; color: var(--navy); font: 700 17px 'Trebuchet MS', Arial, sans-serif; }
+.job-section-heading p { margin: 4px 0 0; color: #718399; font: 12px 'Trebuchet MS', Arial, sans-serif; }
+.job-composer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 20px; }
+.job-composer-grid label { display: block; color: #35516c; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.job-composer-grid .field-wide { grid-column: 1 / -1; }
+.job-composer-grid input, .job-composer-grid select, .job-composer-grid textarea { display: block; width: 100%; margin-top: 7px; padding: 11px 12px; border: 1px solid #cbd7e2; border-radius: 6px; color: #153653; background: #fbfcfd; font: 13px 'Trebuchet MS', Arial, sans-serif; }
+.job-composer-grid textarea { resize: vertical; line-height: 1.5; }
+.job-composer-grid input:focus, .job-composer-grid select:focus, .job-composer-grid textarea:focus { border-color: var(--orange); outline: none; box-shadow: 0 0 0 3px rgba(228, 123, 11, .14); background: #fff; }
+.job-field-note { margin: 14px 0 0; color: #718399; font: 12px 'Trebuchet MS', Arial, sans-serif; }
+.job-field-note i { margin-right: 5px; color: var(--orange); }
+.keyword-field input { border-left: 4px solid var(--orange); }
+.skill-chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 8px 7px 11px; border: 1px solid #b9d6c4; border-radius: 999px; color: #175c39; background: #eef9f1; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.skill-chip small { margin-left: 4px; color: #5a8069; font-size: 10px; font-weight: 400; }
+.skill-chip button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; color: #387050; background: transparent; cursor: pointer; }
+.skill-chip button:hover { color: #fff; background: #b84b39; }
+.job-composer-actions { display: flex; justify-content: flex-end; gap: 11px; padding-top: 24px; }
 .company-dashboard-main .profile-card { border-top-width: 4px; border-radius: 16px; }
 .company-dashboard-main .profile-card-header { padding: 28px 30px; }
 .company-dashboard-main .profile-details { padding: 28px 30px; }
@@ -322,6 +355,14 @@ body.dashboard-page-body { padding-bottom: 0; }
 .login-card { padding: 38px; border-top: 6px solid var(--orange); border-radius: 0 0 15px 15px; background: #fff; box-shadow: 0 22px 60px rgba(0, 0, 0, .3); }
 .login-card h1 { margin: 0 0 8px; color: var(--navy); font-size: 35px; }
 @media (max-width: 800px) {
+	.job-composer-header { flex-direction: column; padding: 24px 20px; }
+	.job-composer-header h2 { font-size: 24px; }
+	.job-composer-form { padding: 0 20px 24px; }
+	.job-composer-grid { grid-template-columns: 1fr; gap: 15px; }
+	.job-composer-grid .field-wide { grid-column: auto; }
+	.job-composer-actions { justify-content: stretch; }
+	.job-composer-actions button { flex: 1; justify-content: center; }
+	.draft-save-status { align-self: flex-start; }
 	.nav-inner { min-height: 68px; }
 	.nav-links a:not(.button) { display: none; }
 	.nav-links a.nav-login { display: block; }

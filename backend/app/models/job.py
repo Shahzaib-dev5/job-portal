@@ -36,6 +36,7 @@ class JobSkill(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     job_id = Column(BigInteger, ForeignKey('jobs.id'), nullable=False)
+    skill_area = Column(String(100), nullable=False)
     skill_name = Column(String(100), nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 

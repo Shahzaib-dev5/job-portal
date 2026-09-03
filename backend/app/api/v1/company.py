@@ -8,8 +8,9 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.company import CompanyProfileUpdateRequest
 from app.schemas.interview import InterviewRequestCreate, InterviewRequestUpdate
-from app.schemas.job import JobCreateRequest, JobStatusUpdateRequest, JobUpdateRequest
+from app.schemas.job import JobCreateRequest, JobDraftRequest, JobStatusUpdateRequest, JobUpdateRequest
 from app.services.company_service import CompanyService
+from app.services.matching_service import calculate_match_percentage
 
 router = APIRouter(prefix="/company", tags=["Company"])
 company_only = require_role(["company"])
@@ -64,6 +65,16 @@ def create_job(
     return {"message": "Job created", "job_id": job.id}
 
 
+@router.post("/jobs/draft", status_code=status.HTTP_201_CREATED)
+def create_job_draft(
+    draft_data: JobDraftRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(company_only),
+):
+    job = CompanyService.save_job_draft(db, current_user.id, None, draft_data)
+    return {"job_id": job.id, "status": job.status, "saved_at": job.updated_at}
+
+
 @router.get("/jobs")
 def list_jobs(
     status: Optional[str] = Query(None, regex="^(draft|published|closed|hidden)$"),
@@ -97,6 +108,7 @@ def get_job(
         "status": job.status,
         "created_at": job.created_at,
         "updated_at": job.updated_at,
+        "skills": [{"skill_area": skill.skill_area, "skill_name": skill.skill_name} for skill in job.job_skills],
     }
 
 
@@ -109,6 +121,17 @@ def update_job(
 ):
     job = CompanyService.update_job(db, job_id, current_user.id, update_data)
     return {"message": "Job updated", "job_id": job.id}
+
+
+@router.patch("/jobs/{job_id}/draft")
+def save_job_draft(
+    job_id: int,
+    draft_data: JobDraftRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(company_only),
+):
+    job = CompanyService.save_job_draft(db, current_user.id, job_id, draft_data)
+    return {"job_id": job.id, "status": job.status, "saved_at": job.updated_at}
 
 
 @router.patch("/jobs/{job_id}/status")
@@ -152,6 +175,10 @@ def get_application_detail(
         "resume_path": application.resume_path,
         "status": application.status,
         "applied_at": application.created_at,
+        **calculate_match_percentage(
+            application.job.job_skills if application.job else [],
+            application.student_profile.skills if application.student_profile else [],
+        ),
     }
 
 

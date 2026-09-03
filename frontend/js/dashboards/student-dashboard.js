@@ -1157,6 +1157,7 @@ async function searchJobs(page = 1) {
                             ${job.min_cgpa ? `<span><i class="bi bi-award mr-1"></i>Min CGPA: ${job.min_cgpa}</span>` : ''}
                         </p>
                         <p class="text-xs text-slate-600 leading-relaxed line-clamp-2 pt-1">${escapeHtml(job.description)}</p>
+                        <div class="flex flex-wrap items-center gap-2 pt-1"><span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">${job.match_percentage}% profile match</span>${(job.skills || []).map(skill => `<span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">${escapeHtml(skill.skill_area)}: ${escapeHtml(skill.skill_name)}</span>`).join('')}</div>
                     </div>
                     <div class="flex sm:flex-col gap-2 self-start sm:self-center flex-shrink-0">
                         <button onclick="viewJobDetail(${job.id})" class="rounded-lg border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors shadow-sm">Details</button>
@@ -1221,6 +1222,7 @@ async function viewJobDetail(jobId) {
                         <div class="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100 max-h-48 overflow-y-auto whitespace-pre-wrap">${escapeHtml(job.requirements)}</div>
                     </div>
                 ` : ''}
+                <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><strong>${job.match_percentage}% profile match</strong> based on your saved skills and proficiency.</div>
             </div>
         `;
 

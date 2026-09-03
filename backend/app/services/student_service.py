@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.application import Application
 from app.models.company import Company
 from app.models.interview import InterviewRequest
-from app.models.job import Job
+from app.models.job import Job, JobSkill
 from app.models.user import User
 from app.models.student import (
     StudentAchievement,
@@ -37,6 +37,7 @@ from app.schemas.student import (
 )
 
 from app.config import settings
+from app.services.matching_service import calculate_match_percentage
 
 UPLOADS_DIR = settings.UPLOADS_DIR
 
@@ -413,16 +414,18 @@ class StudentService:
         if employment_type:
             query = query.filter(Job.employment_type == employment_type)
         if skills:
-            query = query.filter(Job.title.ilike(f"%{skills[0]}%"))
+            query = query.join(JobSkill).filter(JobSkill.skill_name.in_(skills)).distinct()
 
         query = query.filter(or_(Job.application_deadline.is_(None), Job.application_deadline >= datetime.now().date()))
         total = query.count()
         jobs = query.offset((page - 1) * page_size).limit(page_size).all()
 
         applied_job_ids = set()
+        student_skills = []
         if user_id:
             student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
             if student:
+                student_skills = student.skills
                 app_rows = db.query(Application.job_id).filter(
                     Application.student_profile_id == student.id,
                     Application.status != "withdrawn"
@@ -447,6 +450,8 @@ class StudentService:
                 "created_at": job.created_at,
                 "updated_at": job.updated_at,
                 "is_applied": job.id in applied_job_ids,
+                "skills": [{"skill_area": skill.skill_area, "skill_name": skill.skill_name} for skill in job.job_skills],
+                **calculate_match_percentage(job.job_skills, student_skills),
             })
 
         return {"total": total, "items": result, "page": page, "page_size": page_size}
@@ -458,9 +463,11 @@ class StudentService:
             raise HTTPException(status_code=404, detail="Job not found or not published")
         
         is_applied = False
+        student_skills = []
         if user_id:
             student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
             if student:
+                student_skills = student.skills
                 existing = db.query(Application).filter(
                     Application.job_id == job_id,
                     Application.student_profile_id == student.id,
@@ -485,6 +492,8 @@ class StudentService:
             "created_at": job.created_at,
             "updated_at": job.updated_at,
             "is_applied": is_applied,
+            "skills": [{"skill_area": skill.skill_area, "skill_name": skill.skill_name} for skill in job.job_skills],
+            **calculate_match_percentage(job.job_skills, student_skills),
         }
 
     @staticmethod
@@ -564,6 +573,7 @@ class StudentService:
                 "status": app.status,
                 "applied_at": app.created_at.isoformat() if app.created_at else None,
                 "updated_at": app.updated_at.isoformat() if app.updated_at else None,
+                **calculate_match_percentage(app.job.job_skills if app.job else [], student.skills),
             })
 
         return {"total": total, "items": result, "page": page, "page_size": page_size}

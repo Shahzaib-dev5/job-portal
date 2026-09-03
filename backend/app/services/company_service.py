@@ -8,15 +8,54 @@ from sqlalchemy.orm import Session
 from app.models.application import Application
 from app.models.company import Company
 from app.models.interview import InterviewRequest
-from app.models.job import Job
+from app.models.job import Job, JobSkill
 from app.models.student import StudentProfile, StudentSkill
 from app.models.user import User
 from app.schemas.company import CompanyProfileUpdateRequest
 from app.schemas.interview import InterviewRequestCreate, InterviewRequestUpdate
-from app.schemas.job import JobCreateRequest, JobStatusUpdateRequest, JobUpdateRequest
+from app.schemas.job import JobCreateRequest, JobDraftRequest, JobStatusUpdateRequest, JobUpdateRequest
+from app.services.matching_service import calculate_match_percentage
 
 
 class CompanyService:
+    @staticmethod
+    def save_job_draft(db: Session, user_id: int, job_id: Optional[int], draft_data: JobDraftRequest) -> Job:
+        company = db.query(Company).filter(Company.user_id == user_id).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+        if company.status != "approved":
+            raise HTTPException(status_code=403, detail="Company not approved to post jobs")
+
+        job = db.query(Job).filter(Job.id == job_id, Job.company_id == company.id).first() if job_id else None
+        if job_id and not job:
+            raise HTTPException(status_code=404, detail="Job draft not found")
+        if not job:
+            job = Job(company_id=company.id, posted_by=user_id, title="Untitled job", description="", employment_type="full_time", status="draft")
+            db.add(job)
+            db.flush()
+
+        values = draft_data.model_dump(exclude_unset=True)
+        skills = values.pop("skills", None)
+        if values.get("status") == "published":
+            if not str(values.get("title", job.title)).strip() or not str(values.get("description", job.description)).strip():
+                raise HTTPException(status_code=422, detail="Title and description are required before publishing")
+            if skills is None:
+                skills = job.job_skills
+            if len(skills) < 5:
+                raise HTTPException(status_code=422, detail="At least 5 keywords are required before publishing")
+        for field, value in values.items():
+            if isinstance(value, str):
+                value = value.strip()
+            setattr(job, field, value)
+        if skills is not None and isinstance(skills, list) and (not skills or isinstance(skills[0], dict)):
+            job.job_skills.clear()
+            for skill in skills:
+                db_skill = skill if isinstance(skill, dict) else skill.model_dump()
+                if db_skill.get("skill_name", "").strip():
+                    job.job_skills.append(JobSkill(skill_area=db_skill["skill_area"].strip(), skill_name=db_skill["skill_name"].strip()))
+        db.commit()
+        db.refresh(job)
+        return job
     @staticmethod
     def get_company_profile(db: Session, user_id: int) -> Company:
         company = db.query(Company).filter(Company.user_id == user_id).first()
@@ -44,6 +83,8 @@ class CompanyService:
             raise HTTPException(status_code=404, detail="Company not found")
         if company.status != "approved":
             raise HTTPException(status_code=403, detail="Company not approved to post jobs")
+        if not job_data.skills:
+            raise HTTPException(status_code=422, detail="At least 5 keywords are required for matchmaking")
 
         new_job = Job(
             company_id=company.id,
@@ -60,6 +101,9 @@ class CompanyService:
             status=job_data.status or "draft",
         )
         db.add(new_job)
+        db.flush()
+        for skill in job_data.skills:
+            db.add(JobSkill(job_id=new_job.id, skill_area=skill.skill_area.strip(), skill_name=skill.skill_name.strip()))
         db.commit()
         db.refresh(new_job)
         return new_job
@@ -114,7 +158,16 @@ class CompanyService:
             raise HTTPException(status_code=400, detail="Cannot update deleted job")
 
         for field, value in update_data.dict(exclude_unset=True).items():
+            if field == "skills":
+                continue
             setattr(job, field, value)
+
+        if update_data.skills is not None:
+            if not update_data.skills:
+                raise HTTPException(status_code=422, detail="At least 5 keywords are required for matchmaking")
+            job.job_skills.clear()
+            for skill in update_data.skills:
+                job.job_skills.append(JobSkill(skill_area=skill.skill_area.strip(), skill_name=skill.skill_name.strip()))
 
         db.commit()
         db.refresh(job)
@@ -171,6 +224,7 @@ class CompanyService:
                 "resume_path": app.resume_path,
                 "status": app.status,
                 "applied_at": app.created_at,
+                **calculate_match_percentage(job.job_skills, app.student_profile.skills if app.student_profile else []),
             })
 
         return {

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, admin, super_admin, company, student, notifications, files
+from app.api.v1 import auth, admin, super_admin, company, student, notifications, files, skills
 
 api_router = APIRouter()
 
@@ -10,3 +10,4 @@ api_router.include_router(company.router)
 api_router.include_router(student.router)
 api_router.include_router(notifications.router)
 api_router.include_router(files.router)
+api_router.include_router(skills.router)
