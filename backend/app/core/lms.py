@@ -55,6 +55,7 @@ async def _jsonrpc_post(path: str, payload: Dict[str, Any], cookies: Optional[Di
 async def authenticate_student(email: str, password: str) -> Dict[str, Any]:
     payload = {
         "jsonrpc": "2.0",
+        "method": "call",
         "params": {"db": settings.LMS_DB_NAME, "login": email, "password": password},
     }
     try:
@@ -73,9 +74,11 @@ async def authenticate_student(email: str, password: str) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Invalid LMS credentials")
     result = data.get("result") or {}
     uid = result.get("uid")
+    if not uid:
+        raise HTTPException(status_code=401, detail="Invalid LMS credentials")
     session_id = response.cookies.get("session_id") or result.get("session_id")
-    if not uid or not session_id:
-        raise HTTPException(status_code=401, detail="LMS did not return a valid session")
+    if not session_id:
+        raise HTTPException(status_code=502, detail="LMS did not return a valid session")
 
     details = await get_student_details(session_id, uid, fallback_email=email)
     if result.get("username"):
@@ -135,4 +138,4 @@ async def validate_lms_response(lms_response: Dict[str, Any]) -> Dict[str, Any]:
     uid = result.get("uid")
     if not uid:
         raise HTTPException(status_code=401, detail="Invalid LMS response")
-    return await get_student_details(result.get("session_id", ""), uid)
+    return await get_student_details(result.get("session_id", ""), uid)

@@ -50,28 +50,13 @@ async function handleStudentLogin(event) {
     const email = document.getElementById('student-email').value;
     const password = document.getElementById('student-password').value;
 
-    let lmsError = null;
     try {
-        // Try local authentication first (avoids LMS 401 noise during local development)
-        const responseLocal = await API.post('/auth/login', { email, password });
-        Auth.setAuth(responseLocal.access_token, responseLocal.user);
+        const response = await API.post('/auth/student/login', { email, password });
+        Auth.setAuth(response.access_token, response.user);
         Auth.redirectToDashboard();
-        return;
-    } catch (localErr) {
-        console.info('Local auth failed, falling back to LMS:', localErr.message);
-        // Try LMS login as a fallback
-        try {
-            const responseLms = await API.post('/auth/student/login', { email, password });
-            Auth.setAuth(responseLms.access_token, responseLms.user);
-            Auth.redirectToDashboard();
-            return;
-        } catch (lmsErr) {
-            // Both attempts failed — show a helpful message. Prefer localErr message if present; otherwise show LMS error.
-            const msg = (localErr && localErr.message) || (lmsErr && lmsErr.message) || 'Unable to sign in. Please check your credentials.';
-            errorElement.textContent = msg;
-            errorElement.classList.remove('hidden');
-            return;
-        }
+    } catch (error) {
+        errorElement.textContent = error.message || 'Unable to sign in with LMS. Please check your credentials.';
+        errorElement.classList.remove('hidden');
     }
 }
 
