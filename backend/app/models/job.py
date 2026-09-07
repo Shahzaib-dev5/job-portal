@@ -14,6 +14,8 @@ class Job(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     requirements = Column(Text, nullable=True)
+    required_degree = Column(String(150), nullable=True)
+    required_area = Column(String(150), nullable=True)
     location = Column(String(255), nullable=True)
     employment_type = Column(Enum('full_time', 'part_time', 'internship', 'contract', 'remote'), nullable=False, default='full_time')
     min_cgpa = Column(Numeric(4, 2), nullable=True)

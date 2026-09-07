@@ -100,6 +100,8 @@ CREATE TABLE `jobs` (
   `title` varchar(255) NOT NULL,
   `description` text NOT NULL,
   `requirements` text DEFAULT NULL,
+  `required_degree` varchar(150) DEFAULT NULL,
+  `required_area` varchar(150) DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
   `employment_type` enum('full_time','part_time','internship','contract','remote') NOT NULL DEFAULT 'full_time',
   `min_cgpa` decimal(4,2) DEFAULT NULL,
@@ -120,7 +122,9 @@ CREATE TABLE `jobs` (
 CREATE TABLE `job_skills` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `job_id` bigint(20) UNSIGNED NOT NULL,
-  `skill_name` varchar(100) NOT NULL
+  `skill_area` varchar(100) NOT NULL DEFAULT 'Other',
+  `skill_name` varchar(100) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

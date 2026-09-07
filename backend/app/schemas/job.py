@@ -7,6 +7,8 @@ class JobBase(BaseModel):
     title: str
     description: str
     requirements: Optional[str] = None
+    required_degree: Optional[str] = None
+    required_area: Optional[str] = None
     location: Optional[str] = None
     employment_type: str  # full_time, part_time, internship, contract, remote
     min_cgpa: Optional[Decimal] = None
@@ -28,6 +30,8 @@ class JobDraftRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     requirements: Optional[str] = None
+    required_degree: Optional[str] = None
+    required_area: Optional[str] = None
     location: Optional[str] = None
     employment_type: Optional[str] = "full_time"
     min_cgpa: Optional[Decimal] = None
@@ -41,6 +45,8 @@ class JobUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     requirements: Optional[str] = None
+    required_degree: Optional[str] = None
+    required_area: Optional[str] = None
     location: Optional[str] = None
     employment_type: Optional[str] = None
     min_cgpa: Optional[Decimal] = None

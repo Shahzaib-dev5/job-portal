@@ -99,6 +99,8 @@ def get_job(
         "title": job.title,
         "description": job.description,
         "requirements": job.requirements,
+        "required_degree": job.required_degree,
+        "required_area": job.required_area,
         "location": job.location,
         "employment_type": job.employment_type,
         "min_cgpa": job.min_cgpa,

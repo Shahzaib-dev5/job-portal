@@ -130,6 +130,8 @@ class AdminService:
             title=job_data.title,
             description=job_data.description,
             requirements=job_data.requirements,
+            required_degree=job_data.required_degree,
+            required_area=job_data.required_area,
             location=job_data.location,
             employment_type=job_data.employment_type,
             min_cgpa=job_data.min_cgpa,

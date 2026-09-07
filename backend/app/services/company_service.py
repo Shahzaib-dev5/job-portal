@@ -39,6 +39,8 @@ class CompanyService:
         if values.get("status") == "published":
             if not str(values.get("title", job.title)).strip() or not str(values.get("description", job.description)).strip():
                 raise HTTPException(status_code=422, detail="Title and description are required before publishing")
+            if not str(values.get("required_area", job.required_area)).strip():
+                raise HTTPException(status_code=422, detail="Required area is required before publishing")
             if skills is None:
                 skills = job.job_skills
             if len(skills) < 5:
@@ -49,10 +51,16 @@ class CompanyService:
             setattr(job, field, value)
         if skills is not None and isinstance(skills, list) and (not skills or isinstance(skills[0], dict)):
             job.job_skills.clear()
+            db.flush()
+            seen_skills = set()
             for skill in skills:
                 db_skill = skill if isinstance(skill, dict) else skill.model_dump()
-                if db_skill.get("skill_name", "").strip():
-                    job.job_skills.append(JobSkill(skill_area=db_skill["skill_area"].strip(), skill_name=db_skill["skill_name"].strip()))
+                skill_name = db_skill.get("skill_name", "").strip()
+                skill_area = db_skill.get("skill_area", "Other").strip() or "Other"
+                skill_key = skill_name.lower()
+                if skill_name and skill_key not in seen_skills:
+                    seen_skills.add(skill_key)
+                    job.job_skills.append(JobSkill(skill_area=skill_area, skill_name=skill_name))
         db.commit()
         db.refresh(job)
         return job
@@ -92,6 +100,8 @@ class CompanyService:
             title=job_data.title,
             description=job_data.description,
             requirements=job_data.requirements,
+            required_degree=job_data.required_degree,
+            required_area=job_data.required_area,
             location=job_data.location,
             employment_type=job_data.employment_type,
             min_cgpa=job_data.min_cgpa,
@@ -102,8 +112,14 @@ class CompanyService:
         )
         db.add(new_job)
         db.flush()
+        seen_skills = set()
         for skill in job_data.skills:
-            db.add(JobSkill(job_id=new_job.id, skill_area=skill.skill_area.strip(), skill_name=skill.skill_name.strip()))
+            skill_name = skill.skill_name.strip()
+            skill_area = skill.skill_area.strip() or "Other"
+            skill_key = skill_name.lower()
+            if skill_name and skill_key not in seen_skills:
+                seen_skills.add(skill_key)
+                db.add(JobSkill(job_id=new_job.id, skill_area=skill_area, skill_name=skill_name))
         db.commit()
         db.refresh(new_job)
         return new_job
@@ -166,8 +182,15 @@ class CompanyService:
             if not update_data.skills:
                 raise HTTPException(status_code=422, detail="At least 5 keywords are required for matchmaking")
             job.job_skills.clear()
+            db.flush()
+            seen_skills = set()
             for skill in update_data.skills:
-                job.job_skills.append(JobSkill(skill_area=skill.skill_area.strip(), skill_name=skill.skill_name.strip()))
+                skill_name = skill.skill_name.strip()
+                skill_area = skill.skill_area.strip() or "Other"
+                skill_key = skill_name.lower()
+                if skill_name and skill_key not in seen_skills:
+                    seen_skills.add(skill_key)
+                    job.job_skills.append(JobSkill(skill_area=skill_area, skill_name=skill_name))
 
         db.commit()
         db.refresh(job)
