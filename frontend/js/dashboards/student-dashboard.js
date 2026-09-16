@@ -222,7 +222,7 @@ function showModal(title, formContent, onSubmit) {
     closeModal();
     const modalHtml = `
         <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div class="w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200 animate-slide-up">
+            <div class="w-full ${title === 'Job & Company Details' ? 'max-w-none student-premium-modal' : 'max-w-lg'} bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200 animate-slide-up">
                 <div class="bg-[#092d52] px-6 py-4 flex justify-between items-center text-white border-b-2 border-[#e47b0b]">
                     <h3 class="text-base font-bold">${escapeHtml(title)}</h3>
                     <button type="button" onclick="closeModal()" class="text-white hover:text-[#e47b0b] text-xl font-bold transition-colors">&times;</button>
@@ -936,11 +936,16 @@ function showExperienceModal(exp = null) {
         </div>
     `;
     showModal(title, formHtml, async () => {
+        const startDate = document.getElementById('exp-start').value;
+        const endDate = document.getElementById('exp-end').value;
+        if (endDate && startDate >= endDate) {
+            throw new Error('End date must be later than start date.');
+        }
         const body = {
             title: document.getElementById('exp-title').value,
             company_name: document.getElementById('exp-company').value,
-            start_date: formatDateForAPI(document.getElementById('exp-start').value),
-            end_date: formatDateForAPI(document.getElementById('exp-end').value),
+            start_date: formatDateForAPI(startDate),
+            end_date: formatDateForAPI(endDate),
             description: document.getElementById('exp-desc').value || null
         };
         if (isEdit) {
@@ -952,6 +957,13 @@ function showExperienceModal(exp = null) {
         }
         renderProfile();
     });
+    const startInput = document.getElementById('exp-start');
+    const endInput = document.getElementById('exp-end');
+    const updateEndDateLimit = () => {
+        endInput.min = startInput.value || '';
+    };
+    startInput.addEventListener('change', updateEndDateLimit);
+    updateEndDateLimit();
 }
 
 // Delete Experience Confirmation
@@ -1190,13 +1202,29 @@ async function searchJobs(page = 1) {
 async function viewJobDetail(jobId) {
     try {
         const job = await API.get(`/students/jobs/${jobId}`);
+        const company = job.company || {
+            name: job.company_name || 'Company',
+            website: '',
+            industry: '',
+            description: '',
+            logo_path: '',
+            contact_email: '',
+            contact_phone: '',
+            location: '',
+            establishment_date: '',
+            secp_number: '',
+            ntn_number: '',
+            status: 'approved'
+        };
+        const companyWebsite = company.website && /^https?:\/\//i.test(company.website)
+            ? company.website
+            : '';
         const modalContent = `
             <div class="space-y-4 text-left">
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-                    <p class="text-xs font-bold text-[#e47b0b] uppercase tracking-wider">${escapeHtml(job.company_name || 'Company')}</p>
-                    <h3 class="text-xl font-bold text-[#092d52] mt-0.5">${escapeHtml(job.title)}</h3>
+                <div class="student-job-premium-header">
+                    <div><p class="student-premium-kicker">${escapeHtml(company.name || job.company_name || 'Company')}</p><h3>${escapeHtml(job.title)}</h3></div>
                     
-                    <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+                    <div class="student-job-meta">
                         <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md"><i class="bi bi-briefcase text-[#092d52] mr-1"></i>${escapeHtml(job.employment_type)}</span>
                         <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md"><i class="bi bi-geo-alt text-[#092d52] mr-1"></i>${escapeHtml(job.location || 'Remote')}</span>
                         ${job.min_cgpa ? `<span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md"><i class="bi bi-mortarboard text-[#092d52] mr-1"></i>Min CGPA: ${job.min_cgpa}</span>` : ''}
@@ -1204,29 +1232,53 @@ async function viewJobDetail(jobId) {
                     </div>
                 </div>
 
+                <section class="student-company-premium-card">
+                    <div class="student-company-hero">
+                        ${company.logo_path
+                            ? `<img src="${escapeHtml(getUploadUrl(company.logo_path))}" alt="${escapeHtml(company.name)} logo" class="student-company-logo">`
+                            : `<div class="student-company-logo student-company-logo-fallback"><i class="bi bi-building"></i></div>`}
+                        <div class="student-company-hero-copy">
+                            <p class="student-premium-kicker"><i class="bi bi-patch-check-fill"></i> Verified employer profile</p>
+                            <h4>${escapeHtml(company.name || 'Company')}</h4>
+                            <p>${escapeHtml(company.industry || 'Organisation')} ${company.location ? `<span>•</span> ${escapeHtml(company.location)}` : ''}</p>
+                        </div>
+                        <span class="student-company-badge">Company</span>
+                    </div>
+                    <div class="student-company-facts">
+                        ${company.location ? `<div><i class="bi bi-geo-alt"></i><span><small>Based in</small>${escapeHtml(company.location)}</span></div>` : ''}
+                        ${company.establishment_date ? `<div><i class="bi bi-calendar3"></i><span><small>Established</small>${escapeHtml(formatDate(company.establishment_date))}</span></div>` : ''}
+                        ${company.contact_email ? `<div><i class="bi bi-envelope"></i><span><small>Contact</small><a href="mailto:${escapeHtml(company.contact_email)}">${escapeHtml(company.contact_email)}</a></span></div>` : ''}
+                        ${company.contact_phone ? `<div><i class="bi bi-telephone"></i><span><small>Phone</small><a href="tel:${escapeHtml(company.contact_phone)}">${escapeHtml(company.contact_phone)}</a></span></div>` : ''}
+                        ${companyWebsite ? `<div><i class="bi bi-globe2"></i><span><small>Website</small><a href="${escapeHtml(companyWebsite)}" target="_blank" rel="noopener noreferrer">Visit website <i class="bi bi-arrow-up-right"></i></a></span></div>` : ''}
+                        ${company.secp_number ? `<div><i class="bi bi-patch-check"></i><span><small>SECP registration</small>${escapeHtml(company.secp_number)}</span></div>` : ''}
+                        ${company.ntn_number ? `<div><i class="bi bi-shield-check"></i><span><small>NTN</small>${escapeHtml(company.ntn_number)}</span></div>` : ''}
+                    </div>
+                    <div class="student-company-about"><p><i class="bi bi-stars"></i> About the company</p><div>${escapeHtml(company.description || 'This company has not added an organisation overview yet.')}</div></div>
+                </section>
+
                 ${job.salary_min || job.salary_max ? `
-                    <div class="text-xs text-slate-700 bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-center gap-2">
+                    <div class="student-salary-card">
                         <i class="bi bi-cash-stack text-emerald-600 text-lg"></i>
                         <span><strong>Salary Range:</strong> PKR ${job.salary_min ? job.salary_min.toLocaleString() : 0} - ${job.salary_max ? job.salary_max.toLocaleString() : 'N/A'}</span>
                     </div>
                 ` : ''}
 
                 <div>
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Description</h4>
-                    <div class="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100 max-h-48 overflow-y-auto whitespace-pre-wrap">${escapeHtml(job.description)}</div>
+                    <h4 class="student-content-label"><i class="bi bi-file-text"></i> Description</h4>
+                    <div class="student-job-copy">${escapeHtml(job.description)}</div>
                 </div>
 
                 ${job.requirements ? `
                     <div>
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Requirements & Qualifications</h4>
-                        <div class="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100 max-h-48 overflow-y-auto whitespace-pre-wrap">${escapeHtml(job.requirements)}</div>
+                        <h4 class="student-content-label"><i class="bi bi-list-check"></i> Requirements & Qualifications</h4>
+                        <div class="student-job-copy">${escapeHtml(job.requirements)}</div>
                     </div>
                 ` : ''}
-                <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><strong>${job.match_percentage}% profile match</strong> based on your saved skills and proficiency.</div>
+                <div class="student-match-card"><span class="student-match-ring"><i class="bi bi-stars"></i></span><div><strong>${job.match_percentage}% profile match</strong><p>Based on your saved skills and proficiency.</p></div></div>
             </div>
         `;
 
-        showModal('Job Details', modalContent, async () => {
+        showModal('Job & Company Details', modalContent, async () => {
             showApplyModal(job.id, job.title, job.company_name, job.is_applied);
         });
         

@@ -18,9 +18,12 @@ window.switchTab = async function(tab) { currentTab = tab; currentPage = 1; docu
 async function renderProfile() {
     try {
         const profile = await API.get('/company/profile');
+        const displayDate = profile.establishment_date
+            ? new Date(`${profile.establishment_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : 'Not set';
         const logoHtml = profile.logo_path ? `
             <div class="company-logo-wrap">
-                <img src="${profile.logo_path}" alt="Company logo" class="company-logo">
+                <img src="${getUploadUrl(profile.logo_path)}" alt="Company logo" class="company-logo">
                 <div class="company-logo-actions">
                     <button onclick="uploadLogo(true)" title="Edit logo" class="small-btn">Edit</button>
                     <button onclick="deleteLogoNew()" title="Delete logo" class="small-btn danger">Delete</button>
@@ -29,7 +32,7 @@ async function renderProfile() {
         ` : '<small>PNG or JPG, up to 5 MB</small>';
 
         document.getElementById('tab-content').innerHTML = `
-            <section class="profile-card">
+            <section class="profile-card company-profile-card">
                 <div class="profile-card-header">
                     <div class="company-avatar">${(profile.company_name || 'C').charAt(0).toUpperCase()}</div>
                     <div class="profile-title">
@@ -40,19 +43,36 @@ async function renderProfile() {
                     <button onclick="editProfile()" class="dashboard-button dashboard-button-primary">Edit profile</button>
                 </div>
 
-                <div class="profile-details">
-                    <div><span>Status</span><strong>${profile.status}</strong></div>
-                    <div><span>Contact email</span><strong>${profile.contact_email || 'Not set'}</strong></div>
-                    <div><span>Website</span><strong>${profile.website || 'Not set'}</strong></div>
-                    <div><span>Phone</span><strong>${profile.contact_phone || 'Not set'}</strong></div>
-                    <div><span>SECP number</span><strong>${profile.secp_number || 'Not set'}</strong></div>
-                    <div><span>NTN number</span><strong>${profile.ntn_number || 'Not set'}</strong></div>
+                <div class="company-profile-intro">
+                    <div><p class="profile-section-kicker">Company profile</p><h3>Build trust with a complete employer profile</h3><p>Add your organisation’s background and contact information so students can make informed decisions.</p></div>
+                    <span class="profile-completion-chip"><i class="bi bi-shield-check"></i> Public profile</span>
                 </div>
 
-                <div class="profile-description"><span>About the company</span><p>${profile.description || 'Add a company description so candidates can understand your organisation.'}</p></div>
+                <div class="company-profile-sections">
+                    <section class="company-profile-section">
+                        <div class="profile-section-heading"><span class="profile-section-icon"><i class="bi bi-buildings"></i></span><div><h3>Organisation overview</h3><p>Tell students who you are and what your organisation does.</p></div></div>
+                        <div class="profile-details company-profile-details">
+                            <div><span>Industry</span><strong>${profile.industry || 'Not set'}</strong></div>
+                            <div><span>Established</span><strong>${displayDate}</strong></div>
+                            <div><span>Head office</span><strong>${profile.location || 'Not set'}</strong></div>
+                            <div><span>Website</span><strong>${profile.website || 'Not set'}</strong></div>
+                        </div>
+                        <div class="profile-description"><span>About the company</span><p>${profile.description || 'Add a company description so candidates can understand your organisation.'}</p></div>
+                    </section>
+
+                    <section class="company-profile-section">
+                        <div class="profile-section-heading"><span class="profile-section-icon"><i class="bi bi-person-lines-fill"></i></span><div><h3>Contact & registration</h3><p>Keep your official employer information current.</p></div></div>
+                        <div class="profile-details company-profile-details">
+                            <div><span>Contact email</span><strong>${profile.contact_email || 'Not set'}</strong></div>
+                            <div><span>Phone</span><strong>${profile.contact_phone || 'Not set'}</strong></div>
+                            <div><span>SECP number</span><strong>${profile.secp_number || 'Not set'}</strong></div>
+                            <div><span>NTN number</span><strong>${profile.ntn_number || 'Not set'}</strong></div>
+                        </div>
+                    </section>
+                </div>
 
                 <div class="profile-actions">
-                    <button onclick="uploadLogo()" class="dashboard-button dashboard-button-secondary">Upload company logo</button>
+                    <button onclick="uploadLogo()" class="dashboard-button dashboard-button-secondary"><i class="bi bi-image"></i> Upload company logo</button>
                     ${logoHtml}
                     <div id="logo-upload-progress" class="upload-progress" style="display:none;margin-top:8px;">
                         <div class="upload-progress-bar" style="width:0%;height:8px;background:#3b82f6;border-radius:4px"></div>
@@ -97,8 +117,35 @@ function deleteLogoNew() {
     }).catch(err => showToast(err.message || 'Delete failed', 'error'));
 }
 
-function editProfile() { const fields = ['company_name', 'website', 'industry', 'description', 'contact_email', 'contact_phone', 'location']; Promise.all([API.get('/company/profile')]).then(([p]) => { const values = fields.map(field => `<input id="profile-${field}" placeholder="${field.replace('_', ' ')}" value="${p[field] || ''}" class="w-full rounded-md border px-3 py-2">`).join(''); document.getElementById('tab-content').insertAdjacentHTML('beforeend', `<div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"><form onsubmit="saveProfile(event)" class="w-full max-w-lg space-y-3 rounded-lg bg-white p-6"><h2 class="text-xl font-semibold">Edit profile</h2>${values}<div class="flex justify-end gap-3"><button type="button" onclick="closeModal()" class="rounded-md border px-3 py-2">Cancel</button><button class="rounded-md bg-blue-700 px-3 py-2 text-white">Save</button></div></form></div>`); }); }
-async function saveProfile(event) { event.preventDefault(); const data = {}; ['company_name', 'website', 'industry', 'description', 'contact_email', 'contact_phone', 'location'].forEach(field => data[field] = document.getElementById(`profile-${field}`).value || null); try { await API.patch('/company/profile', data); closeModal(); showToast('Profile updated'); renderProfile(); } catch (error) { showToast(error.message, 'error'); } }
+function profileInput(field, label, value, type = 'text', wide = false) {
+    return `<label class="company-form-field${wide ? ' company-form-field-wide' : ''}"><span>${label}</span><input id="profile-${field}" type="${type}" value="${escapeHtml(value || '')}" placeholder="${label}"></label>`;
+}
+function registrationOption(type, label, value) {
+    const selected = Boolean(value);
+    return `<div class="registration-option"><label class="registration-check"><input type="checkbox" id="registration-${type}" onchange="toggleRegistrationField('${type}')" ${selected ? 'checked' : ''}><span><i class="bi bi-check2-circle"></i> ${label}</span></label><div id="registration-${type}-field" class="registration-number-field${selected ? '' : ' is-hidden'}"><label class="company-form-field"><span>${label} number</span><input id="profile-${type}_number" value="${escapeHtml(value || '')}" placeholder="Enter ${label} number"></label></div></div>`;
+}
+function toggleRegistrationField(type) {
+    const checkbox = document.getElementById(`registration-${type}`);
+    const field = document.getElementById(`registration-${type}-field`);
+    if (!checkbox || !field) return;
+    field.classList.toggle('is-hidden', !checkbox.checked);
+}
+function editProfile() {
+    API.get('/company/profile').then(p => {
+        const form = `
+            <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                <form onsubmit="saveProfile(event)" class="company-profile-edit-modal">
+                    <div class="company-edit-header"><div><p class="profile-section-kicker">Company profile</p><h2>Edit organisation details</h2><p>These details help students understand and trust your company.</p></div><button type="button" onclick="closeModal()" class="company-modal-close">&times;</button></div>
+                    <div class="company-form-section"><div class="profile-section-heading"><span class="profile-section-icon"><i class="bi bi-buildings"></i></span><div><h3>Organisation overview</h3><p>Basic information about your company.</p></div></div><div class="company-form-grid">${profileInput('company_name', 'Company name', p.company_name, 'text', true)}${profileInput('industry', 'Industry', p.industry)}${profileInput('establishment_date', 'Establishment date', p.establishment_date, 'date')}${profileInput('location', 'Head office location', p.location)}${profileInput('website', 'Company website', p.website, 'url', true)}<label class="company-form-field company-form-field-wide"><span>About the company</span><textarea id="profile-description" rows="4" placeholder="Describe your company, mission, products, and culture">${escapeHtml(p.description || '')}</textarea></label></div></div>
+                    <div class="company-form-section"><div class="profile-section-heading"><span class="profile-section-icon"><i class="bi bi-person-lines-fill"></i></span><div><h3>Contact information</h3><p>How students and applicants can reach your team.</p></div></div><div class="company-form-grid">${profileInput('contact_email', 'Contact email', p.contact_email, 'email')}${profileInput('contact_phone', 'Contact phone', p.contact_phone)}</div></div>
+                    <div class="company-form-section"><div class="profile-section-heading"><span class="profile-section-icon"><i class="bi bi-patch-check"></i></span><div><h3>Legal registration</h3><p>Select the registration details your company has. You may select one or both.</p></div></div><div class="registration-options">${registrationOption('secp', 'SECP', p.secp_number)}${registrationOption('ntn', 'NTN', p.ntn_number)}</div></div>
+                    <div class="company-edit-footer"><button type="button" onclick="closeModal()" class="dashboard-button dashboard-button-secondary">Cancel</button><button class="dashboard-button dashboard-button-primary"><i class="bi bi-check2"></i> Save profile</button></div>
+                </form>
+            </div>`;
+        document.getElementById('tab-content').insertAdjacentHTML('beforeend', form);
+    }).catch(error => showToast(error.message, 'error'));
+}
+async function saveProfile(event) { event.preventDefault(); const data = {}; ['company_name', 'website', 'industry', 'description', 'contact_email', 'contact_phone', 'location', 'establishment_date'].forEach(field => data[field] = document.getElementById(`profile-${field}`).value || null); data.secp_number = document.getElementById('registration-secp')?.checked ? (document.getElementById('profile-secp_number')?.value || null) : null; data.ntn_number = document.getElementById('registration-ntn')?.checked ? (document.getElementById('profile-ntn_number')?.value || null) : null; try { await API.patch('/company/profile', data); closeModal(); showToast('Company profile updated'); renderProfile(); } catch (error) { showToast(error.message, 'error'); } }
 function uploadLogo(isEdit = false) {
     const input = document.createElement('input');
     input.type = 'file';
@@ -324,7 +371,56 @@ function createJob() {
 async function updateJob(id, status) { try { await API.patch(`/company/jobs/${id}/status`, { status }); showToast('Job updated'); renderJobs(); } catch (error) { showToast(error.message, 'error'); } }
 async function viewApplications(jobId) { currentTab = 'applications'; try { const data = await API.get(`/company/jobs/${jobId}/applications?page=1&page_size=100`); document.getElementById('tab-content').innerHTML = `<section class="rounded-lg border border-slate-200 bg-white p-5"><h2 class="text-lg font-semibold">Applications</h2>${data.items.map(item => `<article class="flex flex-wrap items-center justify-between gap-3 border-b py-4"><div><strong>${item.student_name || 'Student'}</strong><p class="text-sm text-slate-500">${item.student_roll_no || ''} · ${item.status}</p><span class="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">${item.match_percentage}% profile match</span></div><div>${item.status === 'applied' ? `<button onclick="shortlist(${item.id})" class="mr-3 text-emerald-700">Shortlist</button>` : ''}<button onclick="interview(${item.id})" class="text-blue-700">Interview</button></div></article>`).join('') || '<p class="py-5 text-slate-500">No applications.</p>'}</section>`; } catch (error) { showToast(error.message, 'error'); } }
 async function shortlist(id) { try { await API.post(`/company/applications/${id}/shortlist`); showToast('Candidate shortlisted'); } catch (error) { showToast(error.message, 'error'); } }
-async function interview(id) { const message = prompt('Interview message'); try { await API.post(`/company/applications/${id}/interview-request`, { message: message || null, interview_date: null }); showToast('Interview request sent'); } catch (error) { showToast(error.message, 'error'); } }
+async function viewStudentApplication(applicationId, studentId) {
+    try {
+        const [application, student] = await Promise.all([
+            API.get(`/company/applications/${applicationId}`),
+            API.get(`/company/candidates/${studentId}`)
+        ]);
+        const skills = (student.skills || []).map(skill => `<span class="student-detail-tag">${escapeHtml(skill.skill_name)}${skill.proficiency ? ` · ${escapeHtml(skill.proficiency)}` : ''}</span>`).join('');
+        const photo = student.photo_path ? `<img src="${escapeHtml(getUploadUrl(student.photo_path))}" alt="${escapeHtml(student.name || 'Student')}" class="student-detail-photo">` : `<div class="student-detail-photo student-detail-photo-fallback">${escapeHtml((student.name || 'S').charAt(0).toUpperCase())}</div>`;
+        const resumePath = student.resume_path || application.resume_path;
+        const resume = resumePath ? `<a href="${escapeHtml(getUploadUrl(resumePath))}" target="_blank" rel="noopener" class="student-detail-resume"><i class="bi bi-file-earmark-pdf"></i> View resume</a>` : '<span class="student-detail-muted">No resume uploaded</span>';
+        document.body.insertAdjacentHTML('beforeend', `<div id="student-detail-overlay" class="student-detail-overlay"><div class="student-detail-modal"><div class="student-detail-header"><div><p class="profile-section-kicker">Applicant profile</p><h2>${escapeHtml(student.name || application.student_name || 'Student')}</h2><p>${escapeHtml(application.job_title || 'Job application')}</p></div><button type="button" onclick="closeStudentDetails()" class="company-modal-close">&times;</button></div><div class="student-detail-body"><div class="student-detail-identity">${photo}<div><h3>${escapeHtml(student.name || 'Student')}</h3><p>${escapeHtml(student.roll_no || 'Roll number not provided')}</p><span class="profile-match-badge">${application.match_percentage}% profile match</span></div></div><div class="student-detail-grid"><div><span>Department</span><strong>${escapeHtml(student.department || 'Not provided')}</strong></div><div><span>Semester</span><strong>${escapeHtml(student.semester || 'Not provided')}</strong></div><div><span>Application status</span><strong>${escapeHtml(application.status || 'Applied')}</strong></div><div><span>Applied on</span><strong>${formatDate(application.applied_at)}</strong></div>${student.contact_info?.email ? `<div class="student-detail-wide"><span>Contact email</span><strong>${escapeHtml(student.contact_info.email)}</strong></div>` : ''}</div><section class="student-detail-section"><h3>About the student</h3><p>${escapeHtml(student.bio || 'No biography has been added yet.')}</p></section><section class="student-detail-section"><h3>Skills</h3><div class="student-detail-tags">${skills || '<span class="student-detail-muted">No skills added yet.</span>'}</div></section><section class="student-detail-section"><h3>Application</h3><p class="student-cover-letter">${escapeHtml(application.cover_letter || 'No cover letter was provided.')}</p><div class="student-detail-footer">${resume}<button type="button" onclick="closeStudentDetails(); interview(${application.id})" class="dashboard-button dashboard-button-primary"><i class="bi bi-calendar-plus"></i> Invite to interview</button></div></section></div></div></div>`);
+    } catch (error) { showToast(error.message, 'error'); }
+}
+function closeStudentDetails() { document.getElementById('student-detail-overlay')?.remove(); }
+const baseViewApplications = viewApplications;
+window.viewApplications = async function (jobId) {
+    await baseViewApplications(jobId);
+    try {
+        const data = await API.get(`/company/jobs/${jobId}/applications?page=1&page_size=100`);
+        const rows = document.querySelectorAll('#tab-content article');
+        data.items.forEach((item, index) => {
+            const row = rows[index];
+            if (!row || row.querySelector('.view-student-details')) return;
+            const actions = row.querySelector('div:last-child');
+            if (actions) actions.insertAdjacentHTML('afterbegin', `<button onclick="viewStudentApplication(${item.id}, ${item.student_id})" class="view-student-details dashboard-button dashboard-button-secondary"><i class="bi bi-person-vcard"></i> View details</button>`);
+        });
+    } catch (error) { showToast(error.message, 'error'); }
+};
+function interview(id) {
+    document.getElementById('interview-request-overlay')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `<div id="interview-request-overlay" class="interview-request-overlay"><form id="interview-request-form" class="interview-request-modal"><div class="interview-request-header"><div class="interview-request-icon"><i class="bi bi-calendar2-check"></i></div><div><p class="profile-section-kicker">Candidate communication</p><h2>Invite to interview</h2><p>Send a professional interview request to this student.</p></div><button type="button" onclick="closeInterviewRequest()" class="company-modal-close">&times;</button></div><div class="interview-request-body"><label class="company-form-field"><span>Interview date and time <em>Optional</em></span><input id="interview-date" type="datetime-local"></label><label class="company-form-field interview-message-field"><span>Message <em>Optional</em></span><textarea id="interview-message" rows="5" maxlength="1000" placeholder="Introduce the interview, explain what the student should prepare, and share any useful details."></textarea><small>Personalised messages help candidates prepare with confidence.</small></label></div><div class="interview-request-footer"><button type="button" onclick="closeInterviewRequest()" class="dashboard-button dashboard-button-secondary">Cancel</button><button type="submit" class="dashboard-button dashboard-button-primary"><i class="bi bi-send"></i> Send invitation</button></div></form></div>`);
+    document.getElementById('interview-request-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sending...';
+        try {
+            const date = document.getElementById('interview-date').value;
+            const message = document.getElementById('interview-message').value.trim();
+            await API.post(`/company/applications/${id}/interview-request`, { message: message || null, interview_date: date || null });
+            closeInterviewRequest();
+            showToast('Interview invitation sent');
+        } catch (error) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="bi bi-send"></i> Send invitation';
+            showToast(error.message, 'error');
+        }
+    });
+}
+function closeInterviewRequest() { document.getElementById('interview-request-overlay')?.remove(); }
 
 async function renderApplications() {
     try {

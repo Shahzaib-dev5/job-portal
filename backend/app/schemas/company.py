@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import date, datetime
 
 # --- Request schemas ---
 
@@ -13,6 +13,7 @@ class CompanyUpdateRequest(BaseModel):
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
     location: Optional[str] = None
+    establishment_date: Optional[date] = None
 
 class CompanyStatusUpdateRequest(BaseModel):
     status: str  # pending/approved/rejected/disabled
@@ -24,6 +25,7 @@ class CompanyBaseResponse(BaseModel):
     company_name: str
     industry: Optional[str]
     location: Optional[str]
+    establishment_date: Optional[date]
     status: str
     created_at: datetime
     updated_at: datetime
@@ -54,17 +56,14 @@ class CompanyProfileResponse(BaseModel):
     contact_email: Optional[EmailStr]
     contact_phone: Optional[str]
     location: Optional[str]
+    establishment_date: Optional[date]
     secp_number: Optional[str]
-    sap_number: Optional[str]
     ntn_number: Optional[str]
     secp_document_path: Optional[str]
-    sap_document_path: Optional[str]
     ntn_document_path: Optional[str]
     secp_number: Optional[str]
-    sap_number: Optional[str]
     ntn_number: Optional[str]
     secp_document_path: Optional[str]
-    sap_document_path: Optional[str]
     ntn_document_path: Optional[str]
     status: str
     created_at: datetime
@@ -82,3 +81,6 @@ class CompanyProfileUpdateRequest(BaseModel):
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
     location: Optional[str] = None
+    establishment_date: Optional[date] = None
+    secp_number: Optional[str] = None
+    ntn_number: Optional[str] = None

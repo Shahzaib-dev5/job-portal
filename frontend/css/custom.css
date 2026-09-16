@@ -271,6 +271,164 @@ body.dashboard-page-body { padding-bottom: 0; }
 .profile-actions { display: flex; align-items: center; gap: 13px; padding: 22px 30px 29px; }
 .profile-actions small { color: #61738a; font: 11px 'Trebuchet MS', Arial, sans-serif; }
 .company-logo { width: 46px; height: 46px; border-radius: 5px; object-fit: cover; }
+.company-profile-card { border-top-width: 5px; }
+.company-profile-intro { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 25px 30px; background: linear-gradient(135deg, #f7fafc, #fff); border-bottom: 1px solid #e3e9ef; }
+.company-profile-intro h3 { margin: 4px 0 5px; color: var(--navy); font-size: 20px; }
+.company-profile-intro p:last-child { margin: 0; color: #61738a; font: 13px/1.5 'Trebuchet MS', Arial, sans-serif; }
+.profile-section-kicker { margin: 0; color: var(--orange); font: 700 10px 'Trebuchet MS', Arial, sans-serif; letter-spacing: 1px; text-transform: uppercase; }
+.profile-completion-chip { flex: 0 0 auto; padding: 9px 12px; border: 1px solid #cce7d9; border-radius: 999px; color: #16734a; background: #effaf4; font: 700 11px 'Trebuchet MS', Arial, sans-serif; }
+.company-profile-sections { display: grid; gap: 18px; padding: 24px 30px 0; }
+.company-profile-section { overflow: hidden; border: 1px solid #e3e9ef; border-radius: 12px; background: #fff; }
+.profile-section-heading { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 14px; }
+.profile-section-heading h3 { margin: 0 0 4px; color: var(--navy); font-size: 16px; }
+.profile-section-heading p { margin: 0; color: #61738a; font: 12px/1.4 'Trebuchet MS', Arial, sans-serif; }
+.profile-section-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: var(--orange); background: #fff5e9; }
+.company-profile-details { grid-template-columns: repeat(4, 1fr); padding: 16px 20px 20px; gap: 16px; }
+.company-profile-section .profile-description { margin: 0 20px; padding: 17px 0 20px; }
+.company-profile-edit-modal { width: min(760px, 100%); max-height: 92vh; overflow-y: auto; border-top: 5px solid var(--orange); border-radius: 12px; background: #fff; box-shadow: 0 22px 60px rgba(0, 0, 0, .3); }
+.company-edit-header { display: flex; justify-content: space-between; gap: 20px; padding: 25px 28px 20px; border-bottom: 1px solid #e3e9ef; }
+.company-edit-header h2 { margin: 4px 0 5px; color: var(--navy); font-size: 24px; }
+.company-edit-header p:last-child { margin: 0; color: #61738a; font: 13px/1.5 'Trebuchet MS', Arial, sans-serif; }
+.company-modal-close { border: 0; color: #61738a; background: transparent; cursor: pointer; font-size: 26px; line-height: 1; }
+.company-modal-close:hover { color: var(--orange); }
+.company-form-section { padding: 20px 28px; border-bottom: 1px solid #e3e9ef; }
+.company-form-section .profile-section-heading { padding: 0 0 16px; }
+.company-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px 18px; }
+.company-form-field { display: block; color: #142f4b; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.company-form-field-wide { grid-column: 1 / -1; }
+.company-form-field input, .company-form-field textarea { width: 100%; margin-top: 7px; border: 1px solid #cbd5df; border-radius: 7px; padding: 11px 12px; outline: none; color: var(--ink); background: #fff; font: 13px 'Trebuchet MS', Arial, sans-serif; }
+.company-form-field textarea { resize: vertical; }
+.company-form-field input:focus, .company-form-field textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(228, 123, 11, .14); }
+.registration-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.registration-option { padding: 14px; border: 1px solid #d8e1e9; border-radius: 9px; background: #fbfcfd; transition: border-color .2s, background .2s, box-shadow .2s; }
+.registration-option:focus-within, .registration-option:has(input[type="checkbox"]:checked) { border-color: var(--orange); background: #fffaf3; box-shadow: 0 0 0 3px rgba(228, 123, 11, .1); }
+.registration-check { display: flex; align-items: center; gap: 9px; color: var(--navy); cursor: pointer; font: 700 13px 'Trebuchet MS', Arial, sans-serif; }
+.registration-check input { width: 16px; height: 16px; accent-color: var(--orange); }
+.registration-check i { margin-right: 4px; color: var(--orange); }
+.registration-number-field { margin-top: 12px; }
+.registration-number-field.is-hidden { display: none; }
+.company-edit-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 18px 28px 22px; }
+.company-applications-card { overflow: hidden; border-top: 5px solid var(--orange); border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgba(13, 40, 67, .08); }
+.company-applications-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 28px; border-bottom: 1px solid #e3e9ef; }
+.company-applications-header h2 { margin: 4px 0 5px; color: var(--navy); font-size: 24px; }
+.company-applications-header p:last-child { margin: 0; color: #61738a; font: 13px/1.5 'Trebuchet MS', Arial, sans-serif; }
+.company-applications-list { padding: 0 28px; }
+.company-application-row { display: flex; align-items: center; gap: 14px; padding: 18px 0; border-bottom: 1px solid #e8edf1; }
+.company-application-row:last-child { border-bottom: 0; }
+.company-applicant-avatar { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; border-radius: 12px; color: #fff; background: var(--navy); font: 700 18px Georgia, serif; }
+.company-applicant-main { min-width: 0; flex: 1; }
+.company-applicant-main strong { color: var(--navy); font: 700 15px 'Trebuchet MS', Arial, sans-serif; }
+.company-applicant-main p { margin: 4px 0 7px; color: #61738a; font: 12px 'Trebuchet MS', Arial, sans-serif; }
+.company-applicant-main p span { margin: 0 5px; color: var(--orange); }
+.company-applicant-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: #718296; font: 11px 'Trebuchet MS', Arial, sans-serif; }
+.company-applicant-meta i { margin-right: 4px; }
+.profile-match-badge { display: inline-block; padding: 5px 8px; border-radius: 999px; color: #16734a; background: #effaf4; font: 700 10px 'Trebuchet MS', Arial, sans-serif; }
+.company-application-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.dashboard-button-success { color: #16734a; border: 1px solid #b9dfca; background: #effaf4; }
+.dashboard-button-link { color: var(--navy); border: 0; background: transparent; }
+.company-empty-state { padding: 30px 0; color: #61738a; font: 13px 'Trebuchet MS', Arial, sans-serif; }
+.student-detail-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 20, 32, .62); backdrop-filter: blur(5px); }
+.student-detail-modal { width: min(760px, 100%); max-height: 92vh; overflow-y: auto; border-top: 5px solid var(--orange); border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(0, 0, 0, .3); }
+.student-detail-header { display: flex; justify-content: space-between; gap: 20px; padding: 24px 28px 18px; border-bottom: 1px solid #e3e9ef; }
+.student-detail-header h2 { margin: 4px 0; color: var(--navy); font-size: 24px; }
+.student-detail-header p:last-child { margin: 0; color: #61738a; font: 13px 'Trebuchet MS', Arial, sans-serif; }
+.student-detail-body { padding: 24px 28px 28px; }
+.student-detail-identity { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #e3e9ef; }
+.student-detail-photo { width: 68px; height: 68px; border-radius: 14px; object-fit: cover; border: 1px solid #d8e1e9; }
+.student-detail-photo-fallback { display: grid; place-items: center; color: #fff; background: var(--navy); font: 700 27px Georgia, serif; }
+.student-detail-identity h3 { margin: 0 0 4px; color: var(--navy); font-size: 19px; }
+.student-detail-identity p { margin: 0 0 8px; color: #61738a; font: 12px 'Trebuchet MS', Arial, sans-serif; }
+.student-detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 20px 0; }
+.student-detail-grid div { display: flex; flex-direction: column; gap: 5px; }
+.student-detail-grid span, .student-detail-section h3 { color: #61738a; font: 700 10px 'Trebuchet MS', Arial, sans-serif; letter-spacing: .7px; text-transform: uppercase; }
+.student-detail-grid strong { overflow-wrap: anywhere; color: var(--ink); font: 14px 'Trebuchet MS', Arial, sans-serif; }
+.student-detail-wide { grid-column: 1 / -1; }
+.student-detail-section { padding: 18px 0; border-top: 1px solid #e3e9ef; }
+.student-detail-section h3 { margin: 0 0 9px; }
+.student-detail-section p { margin: 0; color: #425c74; font: 13px/1.6 'Trebuchet MS', Arial, sans-serif; }
+.student-detail-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.student-detail-tag { padding: 6px 9px; border: 1px solid #d8e1e9; border-radius: 999px; color: var(--navy); background: #f7fafc; font: 11px 'Trebuchet MS', Arial, sans-serif; }
+.student-detail-muted { color: #8291a0; font: 12px 'Trebuchet MS', Arial, sans-serif; }
+.student-cover-letter { padding: 12px; border-radius: 8px; background: #f7fafc; white-space: pre-wrap; }
+.student-detail-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 17px; }
+.student-detail-resume { color: var(--navy); font: 700 12px 'Trebuchet MS', Arial, sans-serif; text-decoration: none; }
+.student-detail-resume:hover { color: var(--orange); }
+.student-premium-modal { width: 100% !important; max-width: none !important; height: calc(100vh - 32px); max-height: calc(100vh - 32px); display: flex; flex-direction: column; border: 0 !important; border-radius: 18px !important; }
+.student-premium-modal *:not(i) { font-family: Arial, Helvetica, sans-serif !important; }
+.student-premium-modal .student-premium-kicker { font-size: 12px; font-weight: 700; letter-spacing: .45px; }
+.student-premium-modal #custom-modal-form { font-size: 15px; }
+.student-premium-modal .student-job-premium-header h3 { font-size: 27px; font-weight: 700; line-height: 1.25; }
+.student-premium-modal .student-company-hero-copy h4 { font-size: 25px; font-weight: 700; line-height: 1.2; }
+.student-premium-modal .student-company-hero-copy > p:last-child { font-size: 15px; line-height: 1.45; }
+.student-premium-modal .student-company-facts span { font-size: 14px; font-weight: 700; }
+.student-premium-modal .student-company-facts small { font-size: 11px; font-weight: 400; }
+.student-premium-modal .student-company-about > div,
+.student-premium-modal .student-company-about > div,
+.student-premium-modal .student-job-copy { font-size: 15px; line-height: 1.65; }
+.student-premium-modal .student-content-label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; letter-spacing: .45px; }
+.student-premium-modal .student-content-label i { color: #e47b0b; font-size: 16px; }
+.student-premium-modal .student-match-card strong { font-size: 15px; }
+.student-premium-modal #custom-modal-form { min-height: 0; overflow-y: auto; scrollbar-color: #9db0bf #edf2f5; scrollbar-width: thin; }
+.student-premium-modal #custom-modal-form::-webkit-scrollbar { width: 10px; }
+.student-premium-modal #custom-modal-form::-webkit-scrollbar-track { background: #edf2f5; }
+.student-premium-modal #custom-modal-form::-webkit-scrollbar-thumb { border: 2px solid #edf2f5; border-radius: 10px; background: #9db0bf; }
+.student-premium-modal #custom-modal-form::-webkit-scrollbar-thumb:hover { background: #71889a; }
+.student-premium-modal > div:first-child { background: linear-gradient(135deg, #092d52 0%, #124b7c 100%); border-bottom: 3px solid #e47b0b !important; }
+.student-premium-modal > div:first-child { flex: 0 0 auto; }
+.student-premium-modal > div:first-child h3 { font-size: 17px; letter-spacing: .2px; }
+.student-company-premium-card { overflow: hidden; border: 1px solid #d9e5ee; border-radius: 16px; background: #fff; box-shadow: 0 12px 28px rgba(9, 45, 82, .1); }
+.student-company-hero { display: flex; align-items: center; gap: 16px; padding: 22px; color: #fff; background: linear-gradient(135deg, #092d52 0%, #0d416d 70%, #145987 100%); }
+.student-company-logo { display: grid; flex: 0 0 70px; width: 70px; height: 70px; place-items: center; border: 3px solid rgba(255,255,255,.75); border-radius: 17px; object-fit: contain; background: #fff; box-shadow: 0 8px 18px rgba(0,0,0,.16); }
+.student-company-logo-fallback { color: #092d52; font-size: 28px; }
+.student-company-hero-copy { min-width: 0; flex: 1; }
+.student-premium-kicker { margin: 0 0 5px; color: #ffc16c; font: 700 10px 'Trebuchet MS', Arial, sans-serif; letter-spacing: .9px; text-transform: uppercase; }
+.student-company-hero-copy h4 { margin: 0; overflow-wrap: anywhere; font: 700 23px/1.15 Georgia, serif; }
+.student-company-hero-copy > p:last-child { margin: 6px 0 0; color: #dbe7f2; font: 12px 'Trebuchet MS', Arial, sans-serif; }
+.student-company-hero-copy > p:last-child span { margin: 0 5px; color: #ffc16c; }
+.student-company-badge { flex: 0 0 auto; padding: 7px 10px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; color: #fff; background: rgba(255,255,255,.1); font: 700 10px 'Trebuchet MS', Arial, sans-serif; }
+.student-company-facts { display: grid; grid-template-columns: repeat(2, 1fr); margin: 0; background: #fff; }
+.student-company-facts > div { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 15px 17px; border-right: 1px solid #dfe8ef; border-bottom: 1px solid #dfe8ef; background: #f8fbfd; }
+.student-company-facts > div > i { margin-top: 2px; color: #e47b0b; font-size: 16px; }
+.student-company-facts span { display: flex; min-width: 0; flex-direction: column; gap: 3px; overflow-wrap: anywhere; color: #092d52; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.student-company-facts small { color: #75879a; font: 10px 'Trebuchet MS', Arial, sans-serif; letter-spacing: .6px; text-transform: uppercase; }
+.student-company-facts a { overflow-wrap: anywhere; color: #092d52; text-decoration: none; }
+.student-company-facts a:hover { color: #e47b0b; }
+.student-company-about { padding: 18px 20px 20px; }
+.student-company-about > p { margin: 0 0 8px; color: #092d52; font: 700 11px 'Trebuchet MS', Arial, sans-serif; letter-spacing: .7px; text-transform: uppercase; }
+.student-company-about > p i { margin-right: 5px; color: #e47b0b; }
+.student-company-about > div { color: #425c74; font: 13px/1.65 'Trebuchet MS', Arial, sans-serif; white-space: pre-wrap; }
+.student-job-premium-header { padding: 21px 22px; border: 1px solid #dce6ee; border-radius: 14px; background: linear-gradient(135deg, #f4f8fb 0%, #fff 58%, #fff7ed 100%); box-shadow: inset 4px 0 0 #e47b0b; }
+.student-job-premium-header > div:first-child { min-width: 0; }
+.student-job-premium-header h3 { margin: 4px 0 0; color: #092d52; font: 700 24px/1.2 Georgia, serif; overflow-wrap: anywhere; }
+.student-job-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+.student-job-meta span { padding: 8px 10px; border: 1px solid #dce6ee; border-radius: 8px; color: #425c74; background: rgba(255,255,255,.8); font: 700 11px 'Trebuchet MS', Arial, sans-serif; }
+.student-job-meta i { margin-right: 5px; color: #e47b0b; }
+.student-salary-card { display: flex; align-items: center; gap: 11px; padding: 14px 16px; border: 1px solid #b9e4cd; border-radius: 11px; color: #125e3d; background: linear-gradient(135deg, #effbf4, #f8fffb); font: 13px 'Trebuchet MS', Arial, sans-serif; }
+.student-salary-card > i { font-size: 21px; color: #15915c; }
+.student-salary-card strong { color: #092d52; }
+.student-content-label { margin: 3px 0 8px; color: #092d52; font: 700 11px 'Trebuchet MS', Arial, sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.student-job-copy { max-height: 190px; overflow-y: auto; padding: 15px 16px; border: 1px solid #e0e8ee; border-radius: 10px; color: #425c74; background: #fbfcfd; font: 13px/1.7 'Trebuchet MS', Arial, sans-serif; white-space: pre-wrap; scrollbar-color: #a9bac8 #eef3f6; }
+.student-job-copy::-webkit-scrollbar { width: 8px; }
+.student-job-copy::-webkit-scrollbar-track { border-radius: 8px; background: #eef3f6; }
+.student-job-copy::-webkit-scrollbar-thumb { border-radius: 8px; background: #a9bac8; }
+.student-match-card { display: flex; align-items: center; gap: 11px; padding: 14px 16px; border: 1px solid #c8e4d4; border-radius: 11px; color: #16734a; background: #f0fbf5; }
+.student-match-ring { display: grid; flex: 0 0 31px; width: 31px; height: 31px; place-items: center; border: 2px solid #40af75; border-radius: 50%; color: #198754; background: #fff; }
+.student-match-card strong { color: #126b43; font: 700 14px 'Trebuchet MS', Arial, sans-serif; }
+.student-match-card p { margin: 2px 0 0; color: #4d7a63; font: 11px 'Trebuchet MS', Arial, sans-serif; }
+.student-company-hero-copy h4 { white-space: normal; overflow: visible; word-break: break-word; }
+.interview-request-overlay { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 20, 32, .62); backdrop-filter: blur(5px); }
+.interview-request-modal { width: min(560px, 100%); overflow: hidden; border-top: 5px solid var(--orange); border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(0, 0, 0, .3); }
+.interview-request-header { display: flex; align-items: flex-start; gap: 13px; padding: 24px 26px 19px; border-bottom: 1px solid #e3e9ef; }
+.interview-request-header h2 { margin: 4px 0 5px; color: var(--navy); font-size: 23px; }
+.interview-request-header p:last-child { margin: 0; color: #61738a; font: 13px/1.5 'Trebuchet MS', Arial, sans-serif; }
+.interview-request-icon { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border-radius: 11px; color: var(--orange); background: #fff5e9; font-size: 20px; }
+.interview-request-header .company-modal-close { margin-left: auto; }
+.interview-request-body { display: grid; gap: 19px; padding: 23px 26px 25px; }
+.interview-request-body em { margin-left: 5px; color: #8291a0; font-size: 10px; font-style: normal; font-weight: normal; }
+.interview-message-field textarea { min-height: 125px; resize: vertical; }
+.interview-message-field small { display: block; margin-top: 7px; color: #8291a0; font: 11px 'Trebuchet MS', Arial, sans-serif; }
+.interview-request-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 17px 26px 21px; border-top: 1px solid #e3e9ef; background: #fbfcfd; }
+.interview-request-footer button:disabled { cursor: wait; opacity: .65; }
 .dashboard-tabs-inner { display: flex; gap: 28px; }
 .admin-table-card { overflow: hidden; border-top: 4px solid var(--orange); border-radius: 6px; background: #fff; box-shadow: 0 8px 20px rgba(13, 40, 67, .08); }
 .admin-table-header { padding: 25px 28px; border-bottom: 1px solid #e3e9ef; }
@@ -392,6 +550,33 @@ body.dashboard-page-body { padding-bottom: 0; }
 	.company-dashboard-banner h1 { font-size: 28px; }
 	.company-dashboard-tabs { gap: 4px; }
 	.company-dashboard-tabs .tab-btn { padding-right: 13px; padding-left: 13px; }
+	.company-profile-intro { align-items: flex-start; flex-direction: column; padding: 22px 20px; }
+	.company-profile-sections { padding: 18px 20px 0; }
+	.company-profile-details { grid-template-columns: repeat(2, 1fr); padding: 14px 16px 18px; }
+	.company-profile-section .profile-description { margin: 0 16px; }
+	.company-form-grid { grid-template-columns: 1fr; }
+	.registration-options { grid-template-columns: 1fr; }
+	.company-applications-header { align-items: flex-start; flex-direction: column; padding: 22px 20px; }
+	.company-applications-list { padding: 0 20px; }
+	.company-application-row { align-items: flex-start; flex-wrap: wrap; }
+	.company-application-actions { width: 100%; justify-content: flex-start; padding-left: 58px; }
+	.student-detail-header, .student-detail-body { padding-left: 20px; padding-right: 20px; }
+	.student-detail-grid { grid-template-columns: 1fr; }
+	.student-detail-wide { grid-column: auto; }
+	.student-detail-footer { align-items: flex-start; flex-direction: column; }
+	.interview-request-header, .interview-request-body { padding-left: 20px; padding-right: 20px; }
+	.interview-request-footer { padding-left: 20px; padding-right: 20px; }
+	.student-company-hero { align-items: flex-start; flex-wrap: wrap; padding: 18px; }
+	.student-company-hero-copy { flex-basis: calc(100% - 90px); }
+	.student-company-badge { margin-left: 86px; }
+	.student-company-facts { grid-template-columns: 1fr; }
+	.student-job-premium-header { padding: 18px; }
+	.student-job-premium-header h3 { font-size: 21px; }
+	.student-job-meta span { flex: 1 1 auto; }
+	.company-form-field-wide { grid-column: auto; }
+	.company-form-section { padding: 18px 20px; }
+	.company-edit-header { padding: 22px 20px 18px; }
+	.company-edit-footer { padding: 16px 20px 20px; }
 	.dashboard-stats { grid-template-columns: 1fr; gap: 12px; }
 	.dashboard-heading { align-items: flex-start; flex-direction: column; }
 	.dashboard-heading h1 { font-size: 35px; }
@@ -446,4 +631,30 @@ body.dashboard-page-body { padding-bottom: 0; }
     appearance: none;
     -webkit-appearance: none;
     background: white url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2361738a'><path d='M5.23 7.21a.75.75 0 011.06-.02L10 10.67l3.71-3.48a.75.75 0 111.04 1.08l-4.23 3.97a.75.75 0 01-1.04 0L5.25 8.27a.75.75 0 01-.02-1.06z'/></svg>") no-repeat right 10px center/12px 12px;
+}
+
+/* Global typography: keep the portal consistent with the UET-style sans-serif UI.
+   Bootstrap icon elements are excluded so their icon font remains intact. */
+body,
+body *:not(i),
+body *:not(i)::before,
+body *:not(i)::after {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+body {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.bi,
+.bi::before {
+    font-family: bootstrap-icons !important;
 }

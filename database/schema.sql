@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS companies (
     contact_email VARCHAR(255) NULL,
     contact_phone VARCHAR(50) NULL,
     location VARCHAR(255) NULL,
+    establishment_date DATE NULL,
     secp_number VARCHAR(100) NULL,
     sap_number VARCHAR(100) NULL,
     ntn_number VARCHAR(100) NULL,

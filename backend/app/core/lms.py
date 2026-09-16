@@ -34,7 +34,14 @@ def _student_from_record(record: Dict[str, Any], fallback_email: str = "") -> Di
 
 async def _jsonrpc_post(path: str, payload: Dict[str, Any], cookies: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     try:
-        async with httpx.AsyncClient(timeout=settings.LMS_TIMEOUT_SECONDS) as client:
+        # The LMS is an external service. Do not inherit a machine-wide proxy
+        # setting here: local development environments may expose a dead proxy
+        # (for example 127.0.0.1:9), which incorrectly turns LMS failures into
+        # 503 responses even though the endpoint itself is reachable.
+        async with httpx.AsyncClient(
+            timeout=settings.LMS_TIMEOUT_SECONDS,
+            trust_env=False,
+        ) as client:
             response = await client.post(_lms_url(path), json=payload, cookies=cookies)
             response.raise_for_status()
             data = response.json()
@@ -59,7 +66,10 @@ async def authenticate_student(email: str, password: str) -> Dict[str, Any]:
         "params": {"db": settings.LMS_DB_NAME, "login": email, "password": password},
     }
     try:
-        async with httpx.AsyncClient(timeout=settings.LMS_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(
+            timeout=settings.LMS_TIMEOUT_SECONDS,
+            trust_env=False,
+        ) as client:
             response = await client.post(_lms_url(settings.LMS_API_ENDPOINT), json=payload)
             response.raise_for_status()
             data = response.json()

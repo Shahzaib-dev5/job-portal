@@ -16,6 +16,16 @@ function formatDate(dateString) {
     });
 }
 
+// Resolve stored upload paths for every dashboard (company, student, and admin).
+function getUploadUrl(path) {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    const apiBase = (typeof CONFIG !== 'undefined' && CONFIG.API_BASE_URL)
+        ? CONFIG.API_BASE_URL.replace(/\/api\/v1\/?$/, '')
+        : 'http://127.0.0.1:8000';
+    return `${apiBase}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 function getQueryParam(param) {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get(param);

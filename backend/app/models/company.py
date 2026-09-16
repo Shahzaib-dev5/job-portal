@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Column, Date, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -18,6 +18,7 @@ class Company(Base):
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(50), nullable=True)
     location = Column(String(255), nullable=True)
+    establishment_date = Column(Date, nullable=True)
     secp_number = Column(String(100), nullable=True)
     sap_number = Column(String(100), nullable=True)
     ntn_number = Column(String(100), nullable=True)

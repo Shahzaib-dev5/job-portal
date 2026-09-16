@@ -256,7 +256,16 @@ class StudentService:
         experience = db.query(StudentExperience).filter(StudentExperience.id == exp_id, StudentExperience.student_profile_id == student.id).first()
         if not experience:
             raise HTTPException(status_code=404, detail="Experience not found")
-        for field, value in update_data.dict(exclude_unset=True).items():
+        changes = update_data.model_dump(exclude_unset=True)
+        resulting_start = changes.get("start_date", experience.start_date)
+        resulting_end = changes.get("end_date", experience.end_date)
+        if (
+            resulting_start is not None
+            and resulting_end is not None
+            and resulting_start >= resulting_end
+        ):
+            raise HTTPException(status_code=422, detail="End date must be later than start date")
+        for field, value in changes.items():
             setattr(experience, field, value)
         db.commit()
         db.refresh(experience)
@@ -480,6 +489,23 @@ class StudentService:
             "id": job.id,
             "company_id": job.company_id,
             "company_name": job.company.company_name if job.company else "",
+            # Only expose public company profile fields to students. Legal and
+            # approval documents must remain available to administrators only.
+            "company": {
+                "id": job.company.id,
+                "name": job.company.company_name,
+                "website": job.company.website,
+                "industry": job.company.industry,
+                "description": job.company.description,
+                "logo_path": job.company.logo_path,
+                "contact_email": job.company.contact_email,
+                "contact_phone": job.company.contact_phone,
+                "location": job.company.location,
+                "establishment_date": job.company.establishment_date,
+                "secp_number": job.company.secp_number,
+                "ntn_number": job.company.ntn_number,
+                "status": job.company.status,
+            } if job.company else None,
             "title": job.title,
             "description": job.description,
             "requirements": job.requirements,

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional, List, Any
 from datetime import date as date_type, datetime
 
@@ -104,6 +104,12 @@ class ExperienceCreateRequest(BaseModel):
     def validate_dates(cls, v):
         return parse_optional_date(v)
 
+    @model_validator(mode='after')
+    def validate_date_range(self):
+        if self.end_date is not None and self.start_date >= self.end_date:
+            raise ValueError('End date must be later than start date')
+        return self
+
 
 class ExperienceUpdateRequest(BaseModel):
     company_name: Optional[str] = None
@@ -116,6 +122,16 @@ class ExperienceUpdateRequest(BaseModel):
     @classmethod
     def validate_dates(cls, v):
         return parse_optional_date(v)
+
+    @model_validator(mode='after')
+    def validate_date_range(self):
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.start_date >= self.end_date
+        ):
+            raise ValueError('End date must be later than start date')
+        return self
 
 
 class ExperienceResponse(BaseModel):

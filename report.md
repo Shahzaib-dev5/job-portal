@@ -1,5 +1,8 @@
 # CareerConnect Job Portal Report
 
+> [!NOTE]
+> The complete software planning master report (with Gantt chart, multi-layer architecture, complete API endpoint matrix, frontend interface matrix, and database entity dictionary) is located in [PROJECT_PLANNING_AND_DOCUMENTATION_REPORT.md](file:///e:/liqae/job-portal-main/documentation/PROJECT_PLANNING_AND_DOCUMENTATION_REPORT.md).
+
 ## 1. Project Overview
 
 CareerConnect is a university job portal for students, companies, administrators, and super administrators. It is implemented as a static HTML/CSS/JavaScript frontend backed by a FastAPI REST API and a MySQL/MariaDB database.

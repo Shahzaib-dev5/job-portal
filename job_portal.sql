@@ -55,6 +55,7 @@ CREATE TABLE `companies` (
   `contact_email` varchar(255) DEFAULT NULL,
   `contact_phone` varchar(50) DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
+  `establishment_date` date DEFAULT NULL,
   `secp_number` varchar(100) DEFAULT NULL,
   `sap_number` varchar(100) DEFAULT NULL,
   `ntn_number` varchar(100) DEFAULT NULL,
