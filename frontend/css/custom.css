@@ -163,6 +163,12 @@ body.dashboard-page-body { padding-bottom: 0; }
 .job-field-note { margin: 14px 0 0; color: #718399; font: 12px 'Trebuchet MS', Arial, sans-serif; }
 .job-field-note i { margin-right: 5px; color: var(--orange); }
 .keyword-field input { border-left: 4px solid var(--orange); }
+.keyword-field { position: relative; }
+.skill-suggestion-menu { position: absolute; z-index: 5; top: 43px; left: 0; right: 0; overflow: hidden; border: 1px solid #cbd7e2; border-radius: 9px; background: #fff; box-shadow: 0 12px 28px rgba(13, 40, 67, .16); }
+.skill-suggestion-option { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 18px; padding: 11px 13px; border: 0; border-bottom: 1px solid #edf2f5; color: #153653; background: #fff; cursor: pointer; text-align: left; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
+.skill-suggestion-option:last-child { border-bottom: 0; }
+.skill-suggestion-option:hover, .skill-suggestion-option:focus { color: var(--navy); background: #f4f8fb; outline: none; }
+.skill-suggestion-option small { color: #718399; font: 11px 'Trebuchet MS', Arial, sans-serif; white-space: nowrap; }
 .skill-chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 8px 7px 11px; border: 1px solid #b9d6c4; border-radius: 999px; color: #175c39; background: #eef9f1; font: 700 12px 'Trebuchet MS', Arial, sans-serif; }
 .skill-chip small { margin-left: 4px; color: #5a8069; font-size: 10px; font-weight: 400; }
@@ -327,7 +333,7 @@ body.dashboard-page-body { padding-bottom: 0; }
 .dashboard-button-success { color: #16734a; border: 1px solid #b9dfca; background: #effaf4; }
 .dashboard-button-link { color: var(--navy); border: 0; background: transparent; }
 .company-empty-state { padding: 30px 0; color: #61738a; font: 13px 'Trebuchet MS', Arial, sans-serif; }
-.student-detail-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 20, 32, .62); backdrop-filter: blur(5px); }
+.student-detail-overlay { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 20, 32, .62); backdrop-filter: blur(5px); }
 .student-detail-modal { width: min(760px, 100%); max-height: 92vh; overflow-y: auto; border-top: 5px solid var(--orange); border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(0, 0, 0, .3); }
 .student-detail-header { display: flex; justify-content: space-between; gap: 20px; padding: 24px 28px 18px; border-bottom: 1px solid #e3e9ef; }
 .student-detail-header h2 { margin: 4px 0; color: var(--navy); font-size: 24px; }
@@ -416,7 +422,7 @@ body.dashboard-page-body { padding-bottom: 0; }
 .student-match-card strong { color: #126b43; font: 700 14px 'Trebuchet MS', Arial, sans-serif; }
 .student-match-card p { margin: 2px 0 0; color: #4d7a63; font: 11px 'Trebuchet MS', Arial, sans-serif; }
 .student-company-hero-copy h4 { white-space: normal; overflow: visible; word-break: break-word; }
-.interview-request-overlay { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 20, 32, .62); backdrop-filter: blur(5px); }
+.interview-request-overlay { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 20, 32, .62); backdrop-filter: blur(5px); }
 .interview-request-modal { width: min(560px, 100%); overflow: hidden; border-top: 5px solid var(--orange); border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(0, 0, 0, .3); }
 .interview-request-header { display: flex; align-items: flex-start; gap: 13px; padding: 24px 26px 19px; border-bottom: 1px solid #e3e9ef; }
 .interview-request-header h2 { margin: 4px 0 5px; color: var(--navy); font-size: 23px; }
@@ -485,7 +491,7 @@ body.dashboard-page-body { padding-bottom: 0; }
 .registration-message[hidden] { display: none; }
 .registration-error { color: #b42318; }
 .registration-success { color: #16734a; }
-.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(4, 25, 47, .78); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; background: rgba(4, 25, 47, .78); }
 .modal-backdrop[hidden] { display: none; }
 .login-modal { position: relative; width: min(540px, 100%); padding: 38px; border-top: 6px solid var(--orange); border-radius: 0 0 15px 15px; background: #fff; box-shadow: 0 22px 60px rgba(0, 0, 0, .3); }
 .modal-close { position: absolute; top: 15px; right: 19px; border: 0; color: #61738a; background: transparent; cursor: pointer; font-size: 27px; line-height: 1; }
@@ -522,6 +528,16 @@ body.dashboard-page-body { padding-bottom: 0; }
 	.job-composer-actions button { flex: 1; justify-content: center; }
 	.draft-save-status { align-self: flex-start; }
 	.nav-inner { min-height: 68px; }
+	.student-dashboard-navbar > div > div,
+	.company-dashboard-navbar > div > div { min-height: 70px !important; gap: 12px !important; }
+	.student-dashboard-navbar a.text-xl,
+	.company-dashboard-navbar a.text-xl { font-size: 19px !important; }
+	.student-dashboard-navbar .nav-logo,
+	.company-dashboard-navbar .nav-logo { width: 34px; height: 34px; }
+	.student-dashboard-navbar .flex.items-center.gap-4,
+	.company-dashboard-navbar .flex.items-center.gap-4 { gap: 8px !important; }
+	.student-dashboard-navbar .flex.items-center.gap-4 > button,
+	.company-dashboard-navbar .flex.items-center.gap-4 > button { padding: 9px 12px !important; font-size: 13px !important; }
 	.nav-links a:not(.button) { display: none; }
 	.nav-links a.nav-login { display: block; }
 	.brand-name { font-size: 17px; }
@@ -546,6 +562,12 @@ body.dashboard-page-body { padding-bottom: 0; }
 	.register-submit { width: 100%; }
 	.registration-message { padding: 0 22px 24px; }
 	.dashboard-main { padding-top: 40px; }
+	.dashboard-main { width: calc(100% - 28px); padding-top: 28px; }
+	.dashboard-heading { align-items: flex-start; padding: 22px 20px; }
+	.dashboard-heading h1 { font-size: 31px; }
+	.dashboard-home-link { align-self: flex-start; }
+	.admin-student-modal-header, .admin-student-modal-body { padding-left: 20px; padding-right: 20px; }
+	.admin-student-facts { grid-template-columns: 1fr; }
 	.company-dashboard-banner { align-items: flex-start; flex-direction: column; padding: 24px 20px; }
 	.company-dashboard-banner h1 { font-size: 28px; }
 	.company-dashboard-tabs { gap: 4px; }
@@ -658,3 +680,86 @@ textarea {
 .bi::before {
     font-family: bootstrap-icons !important;
 }
+
+/* Admin dashboard visual polish */
+.dashboard-main { width: min(1320px, calc(100% - 48px)); max-width: 1320px; margin: 0 auto; padding: 42px 0 72px; }
+.dashboard-heading { align-items: center; margin-bottom: 28px; padding: 28px 30px; border: 1px solid #d9e4ec; border-top: 5px solid var(--orange); border-radius: 16px; background: linear-gradient(135deg, #fff 0%, #f5f9fc 100%); box-shadow: 0 8px 24px rgba(13, 40, 67, .07); }
+.dashboard-heading h1 { font-size: 38px; font-weight: 700; letter-spacing: -.5px; }
+.dashboard-kicker { margin-bottom: 7px; font-size: 12px; letter-spacing: 1.4px; }
+.dashboard-subtitle { font-size: 15px; line-height: 1.55; }
+.dashboard-home-link { padding: 10px 14px; border: 1px solid #c8d6e1; border-radius: 9px; background: #fff; font-size: 14px; }
+.dashboard-home-link:hover { border-color: var(--orange); background: #fff8ef; }
+.dashboard-stats { grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 28px; }
+.dashboard-stats .stat-card { min-height: 126px; padding: 22px 24px; border: 1px solid #dbe5ec; border-top: 4px solid var(--navy); border-radius: 14px; box-shadow: 0 7px 20px rgba(13, 40, 67, .07); transition: transform .2s, box-shadow .2s; }
+.dashboard-stats .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(13, 40, 67, .11); }
+.dashboard-stats .stat-card:nth-child(2) { border-top-color: var(--orange); }
+.dashboard-stats .stat-card:nth-child(3) { border-top-color: #16865a; }
+.dashboard-stats .stat-card p { margin-bottom: 10px; font-size: 12px; }
+.dashboard-stats .stat-card strong { font-size: 34px; }
+.dashboard-tabs { gap: 6px; margin-bottom: 22px; padding: 6px; border: 1px solid #dbe5ec; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(13, 40, 67, .05); }
+.dashboard-tabs .tab-btn { padding: 11px 17px 12px; border: 1px solid transparent; border-radius: 8px; font-size: 14px; }
+.dashboard-tabs .tab-btn:hover { color: var(--navy); background: #f4f8fb; }
+.dashboard-tabs .tab-btn.active { border-color: var(--navy); color: #fff; background: var(--navy); box-shadow: 0 4px 9px rgba(9, 45, 82, .16); }
+.admin-table-card { border: 1px solid #dbe5ec; border-top: 5px solid var(--orange); border-radius: 14px; box-shadow: 0 8px 24px rgba(13, 40, 67, .07); }
+.admin-table-header { padding: 23px 26px; background: linear-gradient(135deg, #fff, #f8fbfd); }
+.admin-table-header h2 { font-size: 22px; }
+.admin-table-header p { font-size: 14px; }
+.admin-table { font-size: 14px; }
+.admin-table th { padding: 14px 20px; color: #526b80; background: #eef4f8; font-size: 11px; }
+.admin-table td { padding: 17px 20px; }
+.admin-table tbody tr { transition: background .15s; }
+.admin-table tbody tr:hover { background: #f8fbfd; }
+.admin-table td strong { font-size: 15px; }
+.admin-table td small { font-size: 12px; }
+.admin-table .dashboard-button { padding: 8px 12px; font-size: 12px; }
+.admin-student-modal { width: min(880px, calc(100vw - 32px)); height: calc(100vh - 32px); max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden; border-top: 5px solid var(--orange); border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(0, 0, 0, .28); }
+.admin-student-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px 28px; color: #fff; background: linear-gradient(135deg, var(--navy), #145987); }
+.admin-student-modal-header > div:first-child { display: flex; align-items: center; gap: 14px; }
+.admin-student-modal-header .dashboard-kicker { margin: 0 0 4px; color: #ffc16c; }
+.admin-student-modal-header h2 { margin: 0 0 4px; font-size: 25px; }
+.admin-student-modal-header p:last-child { margin: 0; color: #dbe7f2; font-size: 13px; }
+.admin-student-modal-header .modal-close { position: static; color: #fff; }
+.admin-student-photo { width: 68px; height: 68px; flex: 0 0 68px; border: 3px solid rgba(255,255,255,.8); border-radius: 14px; object-fit: cover; background: #fff; }
+.admin-student-photo-fallback { display: grid; place-items: center; color: var(--navy); font: 700 27px Georgia, serif; }
+.admin-student-modal-body { min-height: 0; overflow-y: auto; padding: 24px 28px 28px; scrollbar-color: #9db0bf #edf2f5; scrollbar-width: thin; }
+.admin-student-modal-body::-webkit-scrollbar { width: 9px; }
+.admin-student-modal-body::-webkit-scrollbar-track { background: #edf2f5; }
+.admin-student-modal-body::-webkit-scrollbar-thumb { border: 2px solid #edf2f5; border-radius: 9px; background: #9db0bf; }
+.admin-student-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-bottom: 4px; border: 1px solid #dce6ee; border-radius: 10px; overflow: hidden; background: #dce6ee; }
+.admin-student-facts div { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; background: #f8fbfd; }
+.admin-student-facts span, .admin-detail-section h3 { color: #61738a; font-size: 11px; font-weight: 700; letter-spacing: .55px; text-transform: uppercase; }
+.admin-student-facts strong { overflow-wrap: anywhere; color: var(--navy); font-size: 13px; }
+.admin-detail-section { padding: 20px 0; border-top: 1px solid #e3e9ef; }
+.admin-detail-section h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; color: var(--navy); }
+.admin-detail-section h3 i { color: var(--orange); font-size: 16px; }
+.admin-detail-section > p { margin: 0; color: #425c74; font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+.admin-detail-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-detail-tag { padding: 7px 10px; border: 1px solid #d6e2eb; border-radius: 999px; color: var(--navy); background: #f7fafc; font-size: 12px; }
+.admin-detail-tag i { color: var(--orange); }
+.admin-detail-list-item { padding: 12px 14px; border: 1px solid #e0e8ee; border-radius: 9px; background: #fbfcfd; }
+.admin-detail-list-item + .admin-detail-list-item { margin-top: 9px; }
+.admin-detail-list-item strong { display: block; color: var(--navy); font-size: 14px; }
+.admin-detail-list-item span { display: block; margin-top: 3px; color: #61738a; font-size: 12px; }
+.admin-detail-list-item p { margin: 7px 0 0; color: #425c74; font-size: 13px; line-height: 1.5; }
+.admin-detail-muted { color: #8291a0; font-size: 13px; }
+.admin-student-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 18px; border-top: 1px solid #e3e9ef; }
+
+/* Larger, more comfortable dashboard top navigation. */
+.student-dashboard-navbar > div,
+.company-dashboard-navbar > div { max-width: 1320px; }
+.student-dashboard-navbar > div > div,
+.company-dashboard-navbar > div > div { min-height: 68px !important; gap: 12px !important; }
+.student-dashboard-navbar a.text-xl,
+.company-dashboard-navbar a.text-xl { font-size: 22px !important; line-height: 1.2; }
+.student-dashboard-navbar .nav-logo,
+.company-dashboard-navbar .nav-logo { width: 42px; height: 42px; object-fit: contain; }
+.student-dashboard-navbar .text-xs,
+.company-dashboard-navbar .text-xs { font-size: 13px !important; }
+.student-dashboard-navbar .flex.items-center.gap-4,
+.company-dashboard-navbar .flex.items-center.gap-4 { gap: 12px !important; }
+.student-dashboard-navbar .flex.items-center.gap-4 > a,
+.company-dashboard-navbar .flex.items-center.gap-4 > a { font-size: 16px !important; }
+.student-dashboard-navbar .flex.items-center.gap-4 > button,
+.company-dashboard-navbar .flex.items-center.gap-4 > button { padding: 8px 12px !important; font-size: 15px !important; }
+.student-dashboard-navbar #notification-bell button,
+.company-dashboard-navbar #notification-bell button { padding: 8px !important; }
