@@ -227,6 +227,47 @@ class AchievementResponse(BaseModel):
         from_attributes = True
 
 
+# ---------- Projects ----------
+class ProjectCreateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    category: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = None
+    technologies: Optional[str] = None
+    project_url: Optional[str] = None
+    start_date: Optional[date_type] = None
+    end_date: Optional[date_type] = None
+
+    @field_validator('start_date', 'end_date', mode='before')
+    @classmethod
+    def validate_dates(cls, v):
+        return parse_optional_date(v)
+
+    @model_validator(mode='after')
+    def validate_date_range(self):
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValueError('End date cannot be earlier than start date')
+        return self
+
+
+class ProjectUpdateRequest(ProjectCreateRequest):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=100)
+
+
+class ProjectResponse(BaseModel):
+    id: int
+    title: str
+    category: str
+    description: Optional[str]
+    technologies: Optional[str]
+    project_url: Optional[str]
+    start_date: Optional[date_type]
+    end_date: Optional[date_type]
+
+    class Config:
+        from_attributes = True
+
+
 # ---------- Job Browsing ----------
 class JobListResponse(BaseModel):
     id: int

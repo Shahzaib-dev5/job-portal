@@ -13,11 +13,18 @@ app = FastAPI(title=settings.PROJECT_NAME, version='1.0.0')
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_origin_regex=r"https?://.*",
+    allow_origins=list(dict.fromkeys([
+        *settings.ALLOWED_ORIGINS,
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://10.10.35.18",
+        "http://10.10.35.18:80",
+        "http://10.10.35.18:3000",
+        "http://10.10.35.18:8000",
+    ])),
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 os.makedirs(UPLOADS_DIR / 'resumes', exist_ok=True)

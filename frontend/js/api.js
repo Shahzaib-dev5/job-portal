@@ -17,7 +17,7 @@ class API {
                 headers
             });
         } catch (error) {
-            throw new Error('Backend server is not reachable. Start FastAPI on http://localhost:8000 and try again.');
+            throw new Error(`Backend server is not reachable at ${CONFIG.API_BASE_URL}. Start FastAPI and try again.`);
         }
 
         if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/student/login') && !endpoint.includes('/auth/lms-login')) {

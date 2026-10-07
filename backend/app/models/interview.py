@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Text
+from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -12,7 +12,8 @@ class InterviewRequest(Base):
     company_id = Column(BigInteger, ForeignKey('companies.id'), nullable=False)
     job_id = Column(BigInteger, ForeignKey('jobs.id'), nullable=False)
     student_profile_id = Column(BigInteger, ForeignKey('student_profiles.id'), nullable=False)
-    application_id = Column(BigInteger, ForeignKey('applications.id'), nullable=False, unique=True)
+    application_id = Column(BigInteger, ForeignKey('applications.id'), nullable=False)
+    interview_type = Column(String(50), nullable=False, default='general')
     message = Column(Text, nullable=True)
     interview_date = Column(DateTime, nullable=True)
     status = Column(Enum('pending', 'accepted', 'declined', 'cancelled'), nullable=False, default='pending')
@@ -22,4 +23,4 @@ class InterviewRequest(Base):
     company = relationship("Company", back_populates="interview_requests")
     job = relationship("Job", back_populates="interview_requests")
     student_profile = relationship("StudentProfile", back_populates="interview_requests")
-    application = relationship("Application", back_populates="interview_request")
+    application = relationship("Application", back_populates="interview_requests")

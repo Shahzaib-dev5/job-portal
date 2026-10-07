@@ -1,6 +1,7 @@
 class Navbar {
     static render(user) {
         const nav = document.createElement('nav');
+        const accountName = escapeHtml(Auth.getDisplayName(user));
         const dashboardScope = ['student', 'company'].includes(user.role)
             ? `${user.role}-dashboard-navbar`
             : '';
@@ -14,11 +15,19 @@ class Navbar {
                     </div>
                     <div class="flex items-center gap-4">
                         <div id="notification-bell"></div>
-                        <a href="/index.html?view=public" onclick="window.location.href='/index.html?view=public'; return false;" class="hidden sm:inline text-sm text-slate-600 hover:text-slate-950">Home</a>
-                        <button onclick="handleLogout()" class="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700">Logout</button>
+                        <div id="account-menu-wrapper" class="account-menu-wrapper">
+                            <button id="account-menu-button" onclick="toggleAccountMenu(event)" aria-expanded="false" aria-controls="account-menu" class="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"><i class="bi bi-person-circle"></i> ${accountName}<i class="bi bi-chevron-down"></i></button>
+                            <div id="account-menu" class="account-menu hidden">
+                                <a href="/index.html?view=public" onclick="window.location.href='/index.html?view=public'; return false;"><i class="bi bi-house-door-fill"></i> Home</a>
+                                <button type="button" onclick="handleLogout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>`;
+        if (!window.notificationPolling) {
+            window.notificationPolling = window.setInterval(updateUnreadCount, 10000);
+        }
         return nav;
     }
 }
@@ -79,10 +88,12 @@ async function updateUnreadCount() {
     try {
         const response = await API.get('/notifications/unread-count');
         const badge = document.getElementById('notification-badge');
-        if (!badge) return;
+        if (!badge) return response.unread_count;
         badge.textContent = response.unread_count;
         badge.classList.toggle('hidden', response.unread_count < 1);
+        return response.unread_count;
     } catch (error) {
         console.warn('Unable to load notification count:', error.message);
+        return null;
     }
 }

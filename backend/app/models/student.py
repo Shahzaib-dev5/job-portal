@@ -37,6 +37,7 @@ class StudentProfile(Base):
     certifications = relationship("StudentCertification", back_populates="student_profile", cascade="all, delete-orphan")
     soft_skills = relationship("StudentSoftSkill", back_populates="student_profile", cascade="all, delete-orphan")
     achievements = relationship("StudentAchievement", back_populates="student_profile", cascade="all, delete-orphan")
+    projects = relationship("StudentProject", back_populates="student_profile", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="student_profile", cascade="all, delete-orphan")
     interview_requests = relationship("InterviewRequest", back_populates="student_profile", cascade="all, delete-orphan")
 
@@ -111,3 +112,21 @@ class StudentAchievement(Base):
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     student_profile = relationship("StudentProfile", back_populates="achievements")
+
+
+class StudentProject(Base):
+    __tablename__ = 'student_projects'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    student_profile_id = Column(BigInteger, ForeignKey('student_profiles.id'), nullable=False)
+    title = Column(String(255), nullable=False)
+    category = Column(String(100), nullable=False, default='Other')
+    description = Column(Text, nullable=True)
+    technologies = Column(String(500), nullable=True)
+    project_url = Column(String(500), nullable=True)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    student_profile = relationship("StudentProfile", back_populates="projects")

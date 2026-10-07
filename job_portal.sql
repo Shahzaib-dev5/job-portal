@@ -33,7 +33,9 @@ CREATE TABLE `applications` (
   `student_profile_id` bigint(20) UNSIGNED NOT NULL,
   `cover_letter` text DEFAULT NULL,
   `resume_path` varchar(500) DEFAULT NULL,
-  `status` enum('applied','shortlisted','interviewed','rejected','withdrawn') NOT NULL DEFAULT 'applied',
+  `status` enum('applied','shortlisted','interviewed','hired','rejected','withdrawn') NOT NULL DEFAULT 'applied',
+  `rejection_reason` text DEFAULT NULL,
+  `decision_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -81,6 +83,7 @@ CREATE TABLE `interview_requests` (
   `job_id` bigint(20) UNSIGNED NOT NULL,
   `student_profile_id` bigint(20) UNSIGNED NOT NULL,
   `application_id` bigint(20) UNSIGNED NOT NULL,
+  `interview_type` varchar(50) NOT NULL DEFAULT 'general',
   `message` text DEFAULT NULL,
   `interview_date` datetime DEFAULT NULL,
   `status` enum('pending','accepted','declined','cancelled') NOT NULL DEFAULT 'pending',
@@ -156,6 +159,26 @@ CREATE TABLE `student_achievements` (
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `date` date DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student_projects`
+--
+
+CREATE TABLE `student_projects` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `student_profile_id` bigint(20) UNSIGNED NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `category` varchar(100) NOT NULL DEFAULT 'Other',
+  `description` text DEFAULT NULL,
+  `technologies` varchar(500) DEFAULT NULL,
+  `project_url` varchar(500) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -299,7 +322,7 @@ ALTER TABLE `companies`
 --
 ALTER TABLE `interview_requests`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uq_interview_request_application` (`application_id`),
+  ADD KEY `idx_interview_requests_application` (`application_id`),
   ADD KEY `idx_interview_requests_student` (`student_profile_id`),
   ADD KEY `idx_interview_requests_status` (`status`),
   ADD KEY `fk_interview_requests_company` (`company_id`),
@@ -336,6 +359,13 @@ ALTER TABLE `notifications`
 ALTER TABLE `student_achievements`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_student_achievements_profile` (`student_profile_id`);
+
+--
+-- Indexes for table `student_projects`
+--
+ALTER TABLE `student_projects`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_student_projects_profile` (`student_profile_id`);
 
 --
 -- Indexes for table `student_certifications`
@@ -432,6 +462,12 @@ ALTER TABLE `student_achievements`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `student_projects`
+--
+ALTER TABLE `student_projects`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `student_certifications`
 --
 ALTER TABLE `student_certifications`
@@ -518,6 +554,12 @@ ALTER TABLE `notifications`
 --
 ALTER TABLE `student_achievements`
   ADD CONSTRAINT `fk_student_achievements_profile` FOREIGN KEY (`student_profile_id`) REFERENCES `student_profiles` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `student_projects`
+--
+ALTER TABLE `student_projects`
+  ADD CONSTRAINT `fk_student_projects_profile` FOREIGN KEY (`student_profile_id`) REFERENCES `student_profiles` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `student_certifications`

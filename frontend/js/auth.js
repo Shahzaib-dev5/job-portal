@@ -8,6 +8,10 @@ class Auth {
         return user ? JSON.parse(user) : null;
     }
 
+    static getDisplayName(user = this.getUser()) {
+        return user?.name || user?.email || 'Account';
+    }
+
     static setAuth(token, user) {
         localStorage.setItem(CONFIG.TOKEN_KEY, token);
         localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(user));
@@ -35,3 +39,22 @@ class Auth {
         window.location.href = '/index.html';
     }
 }
+
+function toggleAccountMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('account-menu');
+    const button = document.getElementById('account-menu-button');
+    if (!menu || !button) return;
+    const isOpen = !menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', isOpen);
+    button.setAttribute('aria-expanded', String(!isOpen));
+}
+
+document.addEventListener('click', (event) => {
+    const wrapper = document.getElementById('account-menu-wrapper');
+    if (!wrapper || wrapper.contains(event.target)) return;
+    const menu = document.getElementById('account-menu');
+    const button = document.getElementById('account-menu-button');
+    if (menu) menu.classList.add('hidden');
+    if (button) button.setAttribute('aria-expanded', 'false');
+});

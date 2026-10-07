@@ -12,10 +12,12 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.application import Application
 from app.models.company import Company
 from app.models.interview import InterviewRequest
+from app.models.notification import Notification
 from app.models.job import Job, JobSkill
 from app.models.user import User
 from app.models.student import (
     StudentAchievement,
+    StudentProject,
     StudentCertification,
     StudentExperience,
     StudentProfile,
@@ -25,6 +27,8 @@ from app.models.student import (
 from app.schemas.student import (
     AchievementCreateRequest,
     AchievementUpdateRequest,
+    ProjectCreateRequest,
+    ProjectUpdateRequest,
     ApplicationCreateRequest,
     CertificationCreateRequest,
     ExperienceCreateRequest,
@@ -402,6 +406,49 @@ class StudentService:
         db.commit()
 
     @staticmethod
+    def add_project(db: Session, user_id: int, project_data: ProjectCreateRequest) -> StudentProject:
+        student = StudentService.get_student_profile(db, user_id)
+        project = StudentProject(student_profile_id=student.id, **project_data.model_dump())
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        return project
+
+    @staticmethod
+    def list_projects(db: Session, user_id: int) -> List[StudentProject]:
+        student = StudentService.get_student_profile(db, user_id)
+        return db.query(StudentProject).filter(
+            StudentProject.student_profile_id == student.id
+        ).order_by(StudentProject.created_at.desc()).all()
+
+    @staticmethod
+    def update_project(db: Session, user_id: int, project_id: int, update_data: ProjectUpdateRequest) -> StudentProject:
+        student = StudentService.get_student_profile(db, user_id)
+        project = db.query(StudentProject).filter(
+            StudentProject.id == project_id,
+            StudentProject.student_profile_id == student.id,
+        ).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        for field, value in update_data.model_dump(exclude_unset=True).items():
+            setattr(project, field, value)
+        db.commit()
+        db.refresh(project)
+        return project
+
+    @staticmethod
+    def delete_project(db: Session, user_id: int, project_id: int) -> None:
+        student = StudentService.get_student_profile(db, user_id)
+        project = db.query(StudentProject).filter(
+            StudentProject.id == project_id,
+            StudentProject.student_profile_id == student.id,
+        ).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        db.delete(project)
+        db.commit()
+
+    @staticmethod
     def list_published_jobs(
         db: Session,
         user_id: Optional[int] = None,
@@ -597,8 +644,13 @@ class StudentService:
                 "cover_letter": app.cover_letter,
                 "resume_path": app.resume_path,
                 "status": app.status,
+                "rejection_reason": app.rejection_reason,
+                "decision_at": app.decision_at.isoformat() if app.decision_at else None,
                 "applied_at": app.created_at.isoformat() if app.created_at else None,
                 "updated_at": app.updated_at.isoformat() if app.updated_at else None,
+                "interview_status": app.latest_interview_request.status if app.latest_interview_request else None,
+                "interview_date": app.latest_interview_request.interview_date.isoformat() if app.latest_interview_request and app.latest_interview_request.interview_date else None,
+                "activities": [{"action": activity.action, "remarks": activity.remarks, "created_at": activity.created_at.isoformat() if activity.created_at else None} for activity in app.activities],
                 **calculate_match_percentage(app.job.job_skills if app.job else [], student.skills),
             })
 
@@ -633,6 +685,7 @@ class StudentService:
                 "company_name": interview.company.company_name if interview.company else None,
                 "job_id": interview.job_id,
                 "job_title": interview.job.title if interview.job else None,
+                "interview_type": interview.interview_type,
                 "message": interview.message,
                 "interview_date": interview.interview_date.isoformat() if interview.interview_date else None,
                 "status": interview.status,
@@ -661,6 +714,21 @@ class StudentService:
             interview.responded_at = datetime.utcnow()
             if interview.application:
                 interview.application.status = "interviewed"
+            if interview.company:
+                db.add(Notification(
+                    user_id=interview.company.user_id,
+                    notification_type="interview_response",
+                    message=f"{student.name} accepted the interview invitation for {interview.job.title if interview.job else 'a job'}.",
+                    link="/js/dashboards/company-dashboard.html?tab=interviews",
+                ))
+            admins = db.query(User).filter(User.role.in_(["admin", "super_admin"]), User.status == "active").all()
+            for admin in admins:
+                db.add(Notification(
+                    user_id=admin.id,
+                    notification_type="interview_response",
+                    message=f"{student.name} accepted an interview with {interview.company.company_name if interview.company else 'a company'}.",
+                    link="/admin-dashboard.html?tab=applications",
+                ))
             db.commit()
             db.refresh(interview)
 
@@ -694,6 +762,21 @@ class StudentService:
                 raise HTTPException(status_code=400, detail=f"Interview request is already {interview.status}")
             interview.status = "declined"
             interview.responded_at = datetime.utcnow()
+            if interview.company:
+                db.add(Notification(
+                    user_id=interview.company.user_id,
+                    notification_type="interview_response",
+                    message=f"{student.name} declined the interview invitation for {interview.job.title if interview.job else 'a job'}.",
+                    link="/js/dashboards/company-dashboard.html?tab=interviews",
+                ))
+            admins = db.query(User).filter(User.role.in_(["admin", "super_admin"]), User.status == "active").all()
+            for admin in admins:
+                db.add(Notification(
+                    user_id=admin.id,
+                    notification_type="interview_response",
+                    message=f"{student.name} declined an interview with {interview.company.company_name if interview.company else 'a company'}.",
+                    link="/admin-dashboard.html?tab=applications",
+                ))
             db.commit()
             db.refresh(interview)
 

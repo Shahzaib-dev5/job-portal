@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
@@ -25,6 +25,23 @@ class ApplicationResponse(BaseModel):
     status: str
     applied_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    decision_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class ApplicationDecisionRequest(BaseModel):
+    status: str = Field(pattern="^(hired|rejected)$")
+    rejection_reason: Optional[str] = None
+    remarks: Optional[str] = None
+
+    def validate_reason(self):
+        if self.status == "rejected" and not (self.rejection_reason or "").strip():
+            raise ValueError("A rejection reason is required")
+        return self
+
+
+class ApplicationActionRequest(BaseModel):
+    remarks: str = Field(min_length=1, max_length=2000)

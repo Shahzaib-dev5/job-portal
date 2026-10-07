@@ -4,9 +4,32 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.notification import Notification
+from app.models.company import Company
+from app.models.student import StudentProfile
+from app.models.user import User
 
 
 class NotificationService:
+    @staticmethod
+    def notify_students_about_job(db: Session, job) -> None:
+        """Queue one unread notification for every active student."""
+        company = getattr(job, "company", None) or db.query(Company).filter(Company.id == job.company_id).first()
+        company_name = company.company_name if company else "A company"
+        students = (
+            db.query(StudentProfile)
+            .join(User, StudentProfile.user_id == User.id)
+            .filter(User.status == "active")
+            .all()
+        )
+        for student in students:
+            db.add(Notification(
+                user_id=student.user_id,
+                notification_type="new_job",
+                message=f"New job posted by {company_name}: {job.title}",
+                link="/js/dashboards/student-dashboard.html?tab=jobs",
+                is_read=False,
+            ))
+
     @staticmethod
     def create_notification(
         db: Session,

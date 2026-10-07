@@ -1,15 +1,18 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from fastapi import HTTPException, status
 from app.models.user import User
 from app.models.company import Company
 from app.models.student import StudentProfile, StudentSkill, StudentExperience, StudentCertification, StudentSoftSkill, StudentAchievement
 from app.models.job import Job, JobSkill
 from app.models.application import Application
+from app.models.notification import Notification
 from app.schemas.company import CompanyUpdateRequest, CompanyStatusUpdateRequest
 from app.schemas.job import JobCreateRequest, JobUpdateRequest, JobStatusUpdateRequest
+from app.schemas.application import ApplicationDecisionRequest
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from app.services.notification_service import NotificationService
 
 class AdminService:
     # ---------- Company Management ----------
@@ -141,6 +144,9 @@ class AdminService:
             status=job_data.status or "draft"
         )
         db.add(new_job)
+        db.flush()
+        if new_job.status == "published":
+            NotificationService.notify_students_about_job(db, new_job)
         db.commit()
         db.refresh(new_job)
         return new_job
@@ -164,7 +170,10 @@ class AdminService:
         allowed = ["draft", "published", "closed", "hidden", "deleted"]
         if status_data.status not in allowed:
             raise HTTPException(status_code=400, detail="Invalid status")
+        was_published = job.status == "published"
         job.status = status_data.status
+        if job.status == "published" and not was_published:
+            NotificationService.notify_students_about_job(db, job)
         db.commit()
         db.refresh(job)
         return job
@@ -253,6 +262,61 @@ class AdminService:
             raise HTTPException(status_code=404, detail="Student not found")
         return student
 
+    @staticmethod
+    def company_overview(db: Session, company_id: int) -> Dict[str, Any]:
+        company = db.query(Company).filter(Company.id == company_id).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+
+        jobs = []
+        candidates = {}
+        company_jobs = db.query(Job).filter(Job.company_id == company_id).all()
+        for job in company_jobs:
+            applications = []
+            for application in job.applications:
+                student = application.student_profile
+                if student:
+                    candidates[student.id] = {
+                        "id": student.id,
+                        "name": student.name,
+                        "roll_no": student.roll_no,
+                        "department": student.department,
+                        "email": student.email,
+                    }
+                applications.append({
+                    "id": application.id,
+                    "student_name": student.name if student else None,
+                    "student_roll_no": student.roll_no if student else None,
+                    "status": application.status,
+                    "applied_at": application.created_at,
+                    "interview_status": application.latest_interview_request.status if application.latest_interview_request else None,
+                })
+            jobs.append({
+                "id": job.id,
+                "title": job.title,
+                "status": job.status,
+                "location": job.location,
+                "employment_type": job.employment_type,
+                "created_at": job.created_at,
+                "applications": applications,
+            })
+
+        interviews = [{
+            "id": interview.id,
+            "job_title": interview.job.title if interview.job else None,
+            "student_name": interview.student_profile.name if interview.student_profile else None,
+            "student_roll_no": interview.student_profile.roll_no if interview.student_profile else None,
+            "status": interview.status,
+            "interview_date": interview.interview_date,
+        } for interview in company.interview_requests]
+
+        return {
+            "company_id": company.id,
+            "jobs": jobs,
+            "candidates": list(candidates.values()),
+            "interviews": interviews,
+        }
+
     # ---------- Application Viewing (Admin) ----------
     @staticmethod
     def list_applications(
@@ -279,6 +343,65 @@ class AdminService:
                 "student_name": app.student_profile.name if app.student_profile else None,
                 "student_roll_no": app.student_profile.roll_no if app.student_profile else None,
                 "status": app.status,
+                "company_name": app.job.company.company_name if app.job and app.job.company else None,
+                "rejection_reason": app.rejection_reason,
+                "decision_at": app.decision_at,
+                "interview_status": app.latest_interview_request.status if app.latest_interview_request else None,
+                "interview_date": app.latest_interview_request.interview_date if app.latest_interview_request else None,
                 "applied_at": app.created_at
             })
         return {"total": total, "items": result, "page": page, "page_size": page_size}
+
+    @staticmethod
+    def application_stats(db: Session) -> Dict[str, int]:
+        rows = db.query(Application.status, func.count(Application.id)).group_by(Application.status).all()
+        counts = {status: 0 for status in ('applied', 'shortlisted', 'interviewed', 'hired', 'rejected', 'withdrawn')}
+        for status_value, count in rows:
+            counts[status_value] = count
+        counts['total'] = sum(counts.values())
+        return counts
+
+    @staticmethod
+    def dashboard_stats(db: Session) -> Dict[str, int]:
+        return {
+            "employers": db.query(Company).count(),
+            "students": db.query(StudentProfile).count(),
+            "interviewed": db.query(Application).filter(Application.status == "interviewed").count(),
+            "hired": db.query(Application).filter(Application.status == "hired").count(),
+            "roles": db.query(Job).filter(Job.status != "deleted").count(),
+            "logins": db.query(User).filter(User.last_login_at.isnot(None)).count(),
+        }
+
+    @staticmethod
+    def decide_application(db: Session, application_id: int, decision_data: ApplicationDecisionRequest, admin_id: int) -> Dict[str, Any]:
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+        if application.status != "interviewed":
+            raise HTTPException(status_code=400, detail="A final decision can only be made after an interview")
+        if decision_data.status == "rejected" and not (decision_data.rejection_reason or "").strip():
+            raise HTTPException(status_code=422, detail="A rejection reason is required")
+
+        application.status = decision_data.status
+        application.rejection_reason = decision_data.rejection_reason.strip() if decision_data.status == "rejected" else None
+        application.decision_at = datetime.utcnow()
+        student = application.student_profile
+        company = application.job.company if application.job else None
+        decision_label = "hired" if decision_data.status == "hired" else "not selected"
+        if student:
+            db.add(Notification(
+                user_id=student.user_id,
+                notification_type="application_status",
+                message=f"Your application for {application.job.title if application.job else 'the position'} has been marked {decision_label}." + (f" Reason: {application.rejection_reason}" if application.rejection_reason else ""),
+                link="/js/dashboards/student-dashboard.html?tab=applications",
+            ))
+        if company and company.user_id:
+            db.add(Notification(
+                user_id=company.user_id,
+                notification_type="application_status",
+                message=f"Final decision recorded for {student.name if student else 'the candidate'}: {decision_label}.",
+                link="/js/dashboards/company-dashboard.html?tab=applications",
+            ))
+        db.commit()
+        db.refresh(application)
+        return {"message": f"Application marked {decision_data.status}", "application_id": application.id, "status": application.status}

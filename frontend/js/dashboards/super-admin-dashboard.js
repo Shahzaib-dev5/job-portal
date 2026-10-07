@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const main = document.createElement('main');
     main.className = 'dashboard-main';
     main.innerHTML = `
-        <div class="dashboard-heading"><div><p class="dashboard-kicker">Control center</p><h1>Super Admin Dashboard</h1><p class="dashboard-subtitle">Manage platform access and review employer registrations.</p></div><a class="dashboard-home-link" href="/index.html">View portal</a></div>
+        <div class="dashboard-heading"><div><p class="dashboard-kicker">Control center</p><h1>Super Admin Dashboard</h1><p class="dashboard-subtitle">Manage platform access and review employer registrations.</p></div></div>
         <div class="dashboard-tabs"><nav class="dashboard-tabs-inner" aria-label="Dashboard sections">
             <button onclick="switchTab('admins')" data-tab="admins" class="tab-btn active">Admins</button>
             <button onclick="switchTab('companies')" data-tab="companies" class="tab-btn">Companies</button>

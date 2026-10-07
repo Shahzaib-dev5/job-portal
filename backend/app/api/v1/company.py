@@ -7,6 +7,7 @@ from app.api.deps import require_role
 from app.database import get_db
 from app.models.user import User
 from app.schemas.company import CompanyProfileUpdateRequest
+from app.schemas.application import ApplicationActionRequest, ApplicationDecisionRequest
 from app.schemas.interview import InterviewRequestCreate, InterviewRequestUpdate
 from app.schemas.job import JobCreateRequest, JobDraftRequest, JobStatusUpdateRequest, JobUpdateRequest
 from app.services.company_service import CompanyService
@@ -186,11 +187,30 @@ def get_application_detail(
 @router.post("/applications/{application_id}/shortlist")
 def shortlist_candidate(
     application_id: int,
+    action_data: ApplicationActionRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(company_only),
 ):
-    application = CompanyService.shortlist_candidate(db, application_id, current_user.id)
+    application = CompanyService.shortlist_candidate(db, application_id, current_user.id, action_data.remarks)
     return {"message": "Candidate shortlisted", "application_id": application.id}
+
+@router.patch("/applications/{application_id}/decision")
+def decide_application(
+    application_id: int,
+    decision_data: ApplicationDecisionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(company_only),
+):
+    application = CompanyService.decide_application(db, application_id, current_user.id, decision_data, decision_data.remarks or "")
+    return {"message": f"Application marked {application.status}", "application_id": application.id, "status": application.status}
+
+@router.get("/applications/{application_id}/activities")
+def application_activities(
+    application_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(company_only),
+):
+    return CompanyService.list_application_activities(db, application_id, current_user.id)
 
 
 @router.post("/applications/{application_id}/interview-request")

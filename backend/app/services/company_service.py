@@ -6,15 +6,19 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
+from app.models.application_activity import ApplicationActivity
 from app.models.company import Company
 from app.models.interview import InterviewRequest
 from app.models.job import Job, JobSkill
+from app.models.notification import Notification
 from app.models.student import StudentProfile, StudentSkill
 from app.models.user import User
 from app.schemas.company import CompanyProfileUpdateRequest
+from app.schemas.application import ApplicationDecisionRequest
 from app.schemas.interview import InterviewRequestCreate, InterviewRequestUpdate
 from app.schemas.job import JobCreateRequest, JobDraftRequest, JobStatusUpdateRequest, JobUpdateRequest
 from app.services.matching_service import calculate_match_percentage
+from app.services.notification_service import NotificationService
 
 
 class CompanyService:
@@ -29,6 +33,7 @@ class CompanyService:
         job = db.query(Job).filter(Job.id == job_id, Job.company_id == company.id).first() if job_id else None
         if job_id and not job:
             raise HTTPException(status_code=404, detail="Job draft not found")
+        was_published = bool(job and job.status == "published")
         if not job:
             job = Job(company_id=company.id, posted_by=user_id, title="Untitled job", description="", employment_type="full_time", status="draft")
             db.add(job)
@@ -61,6 +66,8 @@ class CompanyService:
                 if skill_name and skill_key not in seen_skills:
                     seen_skills.add(skill_key)
                     job.job_skills.append(JobSkill(skill_area=skill_area, skill_name=skill_name))
+        if job.status == "published" and not was_published:
+            NotificationService.notify_students_about_job(db, job)
         db.commit()
         db.refresh(job)
         return job
@@ -120,6 +127,8 @@ class CompanyService:
             if skill_name and skill_key not in seen_skills:
                 seen_skills.add(skill_key)
                 db.add(JobSkill(job_id=new_job.id, skill_area=skill_area, skill_name=skill_name))
+        if new_job.status == "published":
+            NotificationService.notify_students_about_job(db, new_job)
         db.commit()
         db.refresh(new_job)
         return new_job
@@ -210,7 +219,10 @@ class CompanyService:
         if status_data.status not in allowed:
             raise HTTPException(status_code=400, detail="Invalid status")
 
+        was_published = job.status == "published"
         job.status = status_data.status
+        if job.status == "published" and not was_published:
+            NotificationService.notify_students_about_job(db, job)
         db.commit()
         db.refresh(job)
         return job
@@ -246,6 +258,8 @@ class CompanyService:
                 "cover_letter": app.cover_letter,
                 "resume_path": app.resume_path,
                 "status": app.status,
+                "interview_status": app.latest_interview_request.status if app.latest_interview_request else None,
+                "interview_date": app.latest_interview_request.interview_date if app.latest_interview_request else None,
                 "applied_at": app.created_at,
                 **calculate_match_percentage(job.job_skills, app.student_profile.skills if app.student_profile else []),
             })
@@ -275,13 +289,58 @@ class CompanyService:
         return application
 
     @staticmethod
-    def shortlist_candidate(db: Session, application_id: int, user_id: int) -> Application:
+    def _record_activity(db: Session, application: Application, user_id: int, action: str, remarks: str):
+        cleaned_remarks = (remarks or "").strip()
+        if not cleaned_remarks:
+            raise HTTPException(status_code=422, detail="Remarks are required for this action")
+        db.add(ApplicationActivity(application_id=application.id, actor_user_id=user_id, action=action, remarks=cleaned_remarks))
+
+    @staticmethod
+    def list_application_activities(db: Session, application_id: int, user_id: int):
+        application = CompanyService.get_application_detail(db, application_id, user_id)
+        return [{"id": item.id, "action": item.action, "remarks": item.remarks, "created_at": item.created_at} for item in application.activities]
+
+    @staticmethod
+    def shortlist_candidate(db: Session, application_id: int, user_id: int, remarks: str) -> Application:
         application = CompanyService.get_application_detail(db, application_id, user_id)
 
         if application.status not in ["applied", "shortlisted"]:
             raise HTTPException(status_code=400, detail="Cannot shortlist this application")
 
         application.status = "shortlisted"
+        CompanyService._record_activity(db, application, user_id, "shortlisted", remarks)
+        company = application.job.company if application.job else None
+        student = application.student_profile
+        if student:
+            db.add(Notification(
+                user_id=student.user_id,
+                notification_type="application_status",
+                message=f"You have been shortlisted by {company.company_name if company else 'the company'} for {application.job.title if application.job else 'a job' }.",
+                link="/js/dashboards/student-dashboard.html?tab=applications",
+            ))
+        admins = db.query(User).filter(User.role.in_(["admin", "super_admin"]), User.status == "active").all()
+        for admin in admins:
+            db.add(Notification(
+                user_id=admin.id,
+                notification_type="application_status",
+                message=f"{student.name if student else 'A student'} was shortlisted by {company.company_name if company else 'a company'} for {application.job.title if application.job else 'a job'}.",
+                link="/admin-dashboard.html?tab=applications",
+            ))
+        db.commit()
+        db.refresh(application)
+        return application
+
+    @staticmethod
+    def decide_application(db: Session, application_id: int, user_id: int, decision_data: ApplicationDecisionRequest, remarks: str = "") -> Application:
+        if not (remarks or "").strip():
+            raise HTTPException(status_code=422, detail="Remarks are required for this action")
+        application = CompanyService.get_application_detail(db, application_id, user_id)
+        if application.status != "interviewed":
+            raise HTTPException(status_code=400, detail="A final decision can only be made after an interview")
+        application.status = decision_data.status
+        application.rejection_reason = decision_data.rejection_reason if decision_data.status == "rejected" else None
+        application.decision_at = datetime.utcnow()
+        CompanyService._record_activity(db, application, user_id, decision_data.status, remarks or decision_data.rejection_reason or "Final decision recorded")
         db.commit()
         db.refresh(application)
         return application
@@ -295,10 +354,6 @@ class CompanyService:
     ) -> InterviewRequest:
         application = CompanyService.get_application_detail(db, application_id, user_id)
 
-        existing = db.query(InterviewRequest).filter(InterviewRequest.application_id == application_id).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Interview request already sent")
-
         company = db.query(Company).filter(Company.user_id == user_id).first()
         if not company:
             raise HTTPException(status_code=404, detail="Company not found")
@@ -308,11 +363,31 @@ class CompanyService:
             job_id=application.job_id,
             student_profile_id=application.student_profile_id,
             application_id=application_id,
+            interview_type=request_data.interview_type,
             message=request_data.message,
             interview_date=request_data.interview_date,
             status="pending",
         )
+        application.status = "interviewed"
+        CompanyService._record_activity(db, application, user_id, "interviewed", request_data.message)
         db.add(interview)
+        student = application.student_profile
+        job_title = application.job.title if application.job else "a job"
+        if student:
+            db.add(Notification(
+                user_id=student.user_id,
+                notification_type="interview_request",
+                message=f"{company.company_name} invited you to an interview for {job_title}.",
+                link="/js/dashboards/student-dashboard.html?tab=interviews",
+            ))
+        admins = db.query(User).filter(User.role.in_(["admin", "super_admin"]), User.status == "active").all()
+        for admin in admins:
+            db.add(Notification(
+                user_id=admin.id,
+                notification_type="interview_request",
+                message=f"{company.company_name} sent an interview invitation to {student.name if student else 'a student'} for {job_title}.",
+                link="/admin-dashboard.html?tab=applications",
+            ))
         db.commit()
         db.refresh(interview)
         return interview
@@ -346,6 +421,7 @@ class CompanyService:
                 "student_name": interview.student_profile.name if interview.student_profile else None,
                 "student_roll_no": interview.student_profile.roll_no if interview.student_profile else None,
                 "application_id": interview.application_id,
+                "interview_type": interview.interview_type,
                 "message": interview.message,
                 "interview_date": interview.interview_date,
                 "status": interview.status,
@@ -380,9 +456,20 @@ class CompanyService:
             raise HTTPException(status_code=404, detail="Interview request not found")
         if interview.status != "pending":
             raise HTTPException(status_code=400, detail="Cannot update non-pending request")
+        if not (update_data.message or "").strip():
+            raise HTTPException(status_code=422, detail="Remarks are required when updating an interview")
 
         for field, value in update_data.dict(exclude_unset=True).items():
             setattr(interview, field, value)
+
+        if update_data.message and interview.application:
+            CompanyService._record_activity(
+                db,
+                interview.application,
+                user_id,
+                "interview_updated",
+                update_data.message,
+            )
 
         if hasattr(interview, "responded_at") and update_data.status:
             interview.responded_at = datetime.utcnow()

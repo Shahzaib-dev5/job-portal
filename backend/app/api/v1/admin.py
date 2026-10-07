@@ -14,6 +14,7 @@ from app.models.student import (
 from app.services.admin_service import AdminService
 from app.schemas.company import CompanyUpdateRequest, CompanyStatusUpdateRequest
 from app.schemas.job import JobCreateRequest, JobUpdateRequest, JobStatusUpdateRequest
+from app.schemas.application import ApplicationDecisionRequest
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 admin_or_super = require_role(["admin", "super_admin"])
@@ -55,6 +56,15 @@ def get_company(
         "created_at": company.created_at,
         "updated_at": company.updated_at
     }
+
+@router.get("/companies/{company_id}/overview")
+def get_company_overview(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_super),
+):
+    """Return a company's jobs and every application grouped by job."""
+    return AdminService.company_overview(db, company_id)
 
 @router.patch("/companies/{company_id}")
 def update_company(
@@ -206,3 +216,28 @@ def list_applications(
     current_user: User = Depends(admin_or_super)
 ):
     return AdminService.list_applications(db, job_id, status, page, page_size)
+
+
+@router.get("/application-stats")
+def application_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_super),
+):
+    return AdminService.application_stats(db)
+
+@router.get("/dashboard-stats")
+def dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_super),
+):
+    return AdminService.dashboard_stats(db)
+
+
+@router.patch("/applications/{application_id}/decision")
+def decide_application(
+    application_id: int,
+    decision_data: ApplicationDecisionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_super),
+):
+    return AdminService.decide_application(db, application_id, decision_data, current_user.id)

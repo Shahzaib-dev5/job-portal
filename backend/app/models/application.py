@@ -13,10 +13,17 @@ class Application(Base):
     student_profile_id = Column(BigInteger, ForeignKey('student_profiles.id'), nullable=False)
     cover_letter = Column(Text, nullable=True)
     resume_path = Column(String(500), nullable=True)
-    status = Column(Enum('applied', 'shortlisted', 'interviewed', 'rejected', 'withdrawn'), nullable=False, default='applied')
+    status = Column(Enum('applied', 'shortlisted', 'interviewed', 'hired', 'rejected', 'withdrawn'), nullable=False, default='applied')
+    rejection_reason = Column(Text, nullable=True)
+    decision_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     job = relationship("Job", back_populates="applications")
     student_profile = relationship("StudentProfile", back_populates="applications")
-    interview_request = relationship("InterviewRequest", back_populates="application", uselist=False)
+    interview_requests = relationship("InterviewRequest", back_populates="application", cascade="all, delete-orphan", order_by="InterviewRequest.created_at")
+    activities = relationship("ApplicationActivity", back_populates="application", cascade="all, delete-orphan", order_by="ApplicationActivity.created_at")
+
+    @property
+    def latest_interview_request(self):
+        return self.interview_requests[-1] if self.interview_requests else None

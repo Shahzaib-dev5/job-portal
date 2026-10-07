@@ -13,6 +13,9 @@ from app.schemas.student import (
     AchievementCreateRequest,
     AchievementResponse,
     AchievementUpdateRequest,
+    ProjectCreateRequest,
+    ProjectResponse,
+    ProjectUpdateRequest,
     ApplicationCreateRequest,
     ApplicationResponse,
     CertificationCreateRequest,
@@ -263,6 +266,27 @@ def delete_my_achievement(
 ):
     StudentService.delete_achievement(db, current_user.id, achievement_id)
     return {"detail": "Achievement deleted"}
+
+
+@router.get("/me/projects", response_model=list[ProjectResponse])
+def list_my_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return StudentService.list_projects(db, current_user.id)
+
+
+@router.post("/me/projects", response_model=ProjectResponse)
+def add_my_project(project_data: ProjectCreateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return StudentService.add_project(db, current_user.id, project_data)
+
+
+@router.put("/me/projects/{project_id}", response_model=ProjectResponse)
+def update_my_project(project_id: int, project_data: ProjectUpdateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return StudentService.update_project(db, current_user.id, project_id, project_data)
+
+
+@router.delete("/me/projects/{project_id}")
+def delete_my_project(project_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    StudentService.delete_project(db, current_user.id, project_id)
+    return {"detail": "Project deleted"}
 
 
 @router.get("/jobs", response_model=dict)

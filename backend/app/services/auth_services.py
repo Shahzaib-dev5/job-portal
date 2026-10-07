@@ -2,10 +2,12 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.company import Company
 from app.models.student import StudentProfile
+from app.models.notification import Notification
 from app.core.security import get_password_hash, create_access_token
 from app.core.lms import authenticate_student, validate_lms_token
 from app.schemas.auth import UserInfo
 from fastapi import HTTPException, status
+from datetime import datetime
 
 class AuthService:
     @staticmethod
@@ -21,6 +23,9 @@ class AuthService:
             company = db.query(Company).filter(Company.user_id == user.id).first()
             if not company or company.status != "approved":
                 raise HTTPException(status_code=403, detail="Company account is awaiting administrator approval")
+        user.last_login_at = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
         return user
 
     @staticmethod
@@ -78,6 +83,17 @@ class AuthService:
             status="pending"  # pending admin approval
         )
         db.add(company)
+        # Notify every administrator so new employer registrations appear in
+        # the counselor/admin notification bell immediately.
+        admins = db.query(User).filter(User.role.in_(["admin", "super_admin"]), User.status == "active").all()
+        for admin in admins:
+            db.add(Notification(
+                user_id=admin.id,
+                notification_type="company_registration",
+                message=f"New company registration pending approval: {company.company_name}",
+                link="/admin-dashboard.html?tab=companies",
+                is_read=False,
+            ))
         db.commit()
         db.refresh(user)
         return user
@@ -123,6 +139,7 @@ class AuthService:
         student_profile.department = lms_data["department"]
         student_profile.semester = lms_data["semester"]
         student_profile.email = lms_data["email"]
+        user.last_login_at = datetime.utcnow()
         db.commit()
         db.refresh(user)
         return user

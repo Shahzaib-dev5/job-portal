@@ -4,7 +4,8 @@ from datetime import datetime
 
 
 class InterviewRequestCreate(BaseModel):
-    message: Optional[str] = None
+    interview_type: str = "general"
+    message: str
     interview_date: Optional[datetime] = None
 
 
@@ -23,6 +24,7 @@ class InterviewRequestResponse(BaseModel):
     student_name: str
     student_roll_no: str
     application_id: int
+    interview_type: str
     message: Optional[str]
     interview_date: Optional[datetime]
     status: str

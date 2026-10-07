@@ -95,16 +95,30 @@ CREATE TABLE IF NOT EXISTS applications (
     student_profile_id BIGINT NOT NULL,
     cover_letter TEXT NULL,
     resume_path VARCHAR(500) NULL,
-    status ENUM('applied', 'shortlisted', 'interviewed', 'rejected', 'withdrawn') NOT NULL DEFAULT 'applied',
+    status ENUM('applied', 'shortlisted', 'interviewed', 'hired', 'rejected', 'withdrawn') NOT NULL DEFAULT 'applied',
+    rejection_reason TEXT NULL,
+    decision_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_applications_job FOREIGN KEY (job_id) REFERENCES jobs(id),
     CONSTRAINT fk_applications_student FOREIGN KEY (student_profile_id) REFERENCES student_profiles(id)
 );
 
-CREATE TABLE IF NOT EXISTS student_skills (
+CREATE TABLE IF NOT EXISTS application_activities (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    student_profile_id BIGINT NOT NULL,
+    application_id BIGINT NOT NULL,
+    actor_user_id BIGINT NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    remarks TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_application_activities_application FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+    CONSTRAINT fk_application_activities_actor FOREIGN KEY (actor_user_id) REFERENCES users(id),
+    INDEX idx_application_activities_application (application_id)
+);
+
+CREATE TABLE IF NOT EXISTS student_skills (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    student_profile_id BIGINT UNSIGNED NOT NULL,
     skill_area VARCHAR(100) NULL,
     skill_name VARCHAR(100) NOT NULL,
     proficiency ENUM('beginner', 'intermediate', 'advanced', 'expert') NULL,
@@ -161,6 +175,22 @@ CREATE TABLE IF NOT EXISTS student_achievements (
     CONSTRAINT fk_student_achievements_profile FOREIGN KEY (student_profile_id) REFERENCES student_profiles(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS student_projects (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    student_profile_id BIGINT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL DEFAULT 'Other',
+    description TEXT NULL,
+    technologies VARCHAR(500) NULL,
+    project_url VARCHAR(500) NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_student_projects_profile (student_profile_id),
+    CONSTRAINT fk_student_projects_profile FOREIGN KEY (student_profile_id) REFERENCES student_profiles(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS job_skills (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     job_id BIGINT NOT NULL,
@@ -176,7 +206,8 @@ CREATE TABLE IF NOT EXISTS interview_requests (
     company_id BIGINT NOT NULL,
     job_id BIGINT NOT NULL,
     student_profile_id BIGINT NOT NULL,
-    application_id BIGINT NOT NULL UNIQUE,
+    application_id BIGINT NOT NULL,
+    interview_type VARCHAR(50) NOT NULL DEFAULT 'general',
     message TEXT NULL,
     interview_date DATETIME NULL,
     status ENUM('pending', 'accepted', 'declined', 'cancelled') NOT NULL DEFAULT 'pending',
@@ -185,7 +216,8 @@ CREATE TABLE IF NOT EXISTS interview_requests (
     CONSTRAINT fk_interviews_company FOREIGN KEY (company_id) REFERENCES companies(id),
     CONSTRAINT fk_interviews_job FOREIGN KEY (job_id) REFERENCES jobs(id),
     CONSTRAINT fk_interviews_student FOREIGN KEY (student_profile_id) REFERENCES student_profiles(id),
-    CONSTRAINT fk_interviews_application FOREIGN KEY (application_id) REFERENCES applications(id)
+    CONSTRAINT fk_interviews_application FOREIGN KEY (application_id) REFERENCES applications(id),
+    INDEX idx_interviews_application (application_id)
 );
 
 CREATE TABLE IF NOT EXISTS notifications (

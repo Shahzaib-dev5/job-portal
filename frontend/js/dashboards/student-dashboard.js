@@ -212,7 +212,7 @@ function getUploadUrl(path) {
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     const baseUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_BASE_URL)
         ? CONFIG.API_BASE_URL.replace(/\/api\/v1\/?$/, '')
-        : 'http://localhost:8000';
+        : 'http://10.10.35.18:8000';
     const cleanPath = path.startsWith('/') ? path : '/' + path;
     return `${baseUrl}${cleanPath}`;
 }
@@ -222,7 +222,7 @@ function showModal(title, formContent, onSubmit) {
     closeModal();
     const modalHtml = `
         <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div class="w-full ${title === 'Job & Company Details' ? 'max-w-none student-premium-modal' : 'max-w-lg'} bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200 animate-slide-up">
+            <div class="w-full ${title === 'Job & Company Details' ? 'max-w-none student-premium-modal' : 'max-w-lg'} bg-white rounded-xl shadow-xl overflow-visible border border-slate-200 animate-slide-up">
                 <div class="bg-[#092d52] px-6 py-4 flex justify-between items-center text-white border-b-2 border-[#e47b0b]">
                     <h3 class="text-base font-bold">${escapeHtml(title)}</h3>
                     <button type="button" onclick="closeModal()" class="text-white hover:text-[#e47b0b] text-xl font-bold transition-colors">&times;</button>
@@ -298,13 +298,14 @@ function showConfirmModal(title, message, onConfirm) {
 
 async function renderProfile() {
     try {
-        const [profile, skills, experiences, certifications, softSkills, achievements] = await Promise.all([
+        const [profile, skills, experiences, certifications, softSkills, achievements, projects] = await Promise.all([
             API.get('/students/me'),
             API.get('/students/me/skills'),
             API.get('/students/me/experiences'),
             API.get('/students/me/certifications'),
             API.get('/students/me/soft-skills'),
-            API.get('/students/me/achievements')
+            API.get('/students/me/achievements'),
+            API.get('/students/me/projects')
         ]);
         
         const tabContent = document.getElementById('tab-content');
@@ -382,9 +383,8 @@ async function renderProfile() {
                                 </div>
                                 <button onclick="editProfileDetails()" class="rounded-lg bg-[#092d52] px-3 py-2 text-xs font-bold text-white hover:bg-[#061e38]"><i class="bi bi-pencil mr-1"></i> Edit</button>
                             </div>
-                            <div class="mt-5 grid gap-4 sm:grid-cols-3">
+                            <div class="mt-5 grid gap-4 sm:grid-cols-2">
                                 <div><span class="profile-meta-label">Availability</span><strong class="profile-meta-value">${escapeHtml(profile.availability || 'Not set')}</strong></div>
-                                <div><span class="profile-meta-label">Hourly rate</span><strong class="profile-meta-value">${profile.hourly_rate ? `$${Number(profile.hourly_rate).toFixed(2)} / hr` : 'Not set'}</strong></div>
                                 <div><span class="profile-meta-label">Languages</span><strong class="profile-meta-value">${escapeHtml(profile.languages || 'Not set')}</strong></div>
                             </div>
                             <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-4">
@@ -475,6 +475,45 @@ async function renderProfile() {
                             </div>
                         </section>
                         
+                        <!-- Projects Card -->
+                        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                                        <i class="bi bi-kanban text-xl text-[#092d52]"></i> Projects
+                                    </h3>
+                                    <p class="text-xs text-slate-500 mt-1">Showcase FYP, commercial, funded, research, and other work.</p>
+                                </div>
+                                <button onclick="showProjectModal()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#092d52] border border-[#e47b0b] rounded-lg hover:bg-[#061e38] transition-all flex items-center gap-1 shadow-sm">
+                                    <i class="bi bi-plus-lg"></i> Add
+                                </button>
+                            </div>
+                            <div class="space-y-4">
+                                ${projects.length > 0 ? projects.map(project => `
+                                    <div class="relative p-4 rounded-xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50 transition-all group">
+                                        <div class="absolute right-4 top-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="showProjectModal(${JSON.stringify(project).replace(/"/g, '&quot;')})" class="p-1 text-slate-400 hover:text-[#092d52] rounded hover:bg-slate-100 transition-all" title="Edit"><i class="bi bi-pencil-fill text-xs"></i></button>
+                                            <button onclick="deleteProject(${project.id}, '${escapeHtml(project.title)}')" class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-all" title="Delete"><i class="bi bi-trash-fill text-xs"></i></button>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-2 pr-16">
+                                            <h4 class="font-bold text-slate-900 text-sm sm:text-base">${escapeHtml(project.title)}</h4>
+                                            <span class="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#c45f00]">${escapeHtml(project.category)}</span>
+                                        </div>
+                                        ${project.technologies ? `<p class="text-xs text-[#092d52] font-semibold mt-2"><i class="bi bi-code-square mr-1"></i>${escapeHtml(project.technologies)}</p>` : ''}
+                                        ${project.start_date || project.end_date ? `<p class="text-xs text-slate-500 font-medium mt-1"><i class="bi bi-calendar-event mr-1"></i>${project.start_date ? formatDate(project.start_date) : 'Started'} - ${project.end_date ? formatDate(project.end_date) : 'Present'}</p>` : ''}
+                                        ${project.description ? `<p class="text-xs text-slate-600 mt-2.5 leading-relaxed bg-white/70 p-2.5 rounded-lg border border-slate-100/50">${escapeHtml(project.description)}</p>` : ''}
+                                        ${project.project_url ? `<a href="${escapeHtml(project.project_url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-[#092d52] hover:text-[#e47b0b]"><i class="bi bi-box-arrow-up-right"></i> View project</a>` : ''}
+                                    </div>
+                                `).join('') : `
+                                    <div class="text-center py-8 text-slate-500 bg-slate-50/30 border border-dashed border-slate-200 rounded-xl">
+                                        <i class="bi bi-kanban text-2xl text-slate-300"></i>
+                                        <p class="text-sm mt-1.5 font-medium">No projects added yet.</p>
+                                        <p class="text-xs mt-1">Add your FYP, commercial, funded, or personal projects.</p>
+                                    </div>
+                                `}
+                            </div>
+                        </section>
+
                         <!-- Achievements Card -->
                         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                             <div class="flex justify-between items-center mb-6">
@@ -634,7 +673,6 @@ async function editProfileDetails() {
         <div class="grid gap-4 sm:grid-cols-2">
             <label class="block text-sm font-semibold text-slate-700">Professional title<input id="market-title" value="${escapeHtml(profile.professional_title || '')}" placeholder="Frontend developer" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
             <label class="block text-sm font-semibold text-slate-700">Location<input id="market-location" value="${escapeHtml(profile.location || '')}" placeholder="Lahore, Pakistan" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
-            <label class="block text-sm font-semibold text-slate-700">Hourly rate (USD)<input id="market-rate" type="number" min="0" step="0.01" value="${profile.hourly_rate || ''}" placeholder="25" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
             <label class="block text-sm font-semibold text-slate-700">Availability<select id="market-availability" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option value="">Select availability</option><option ${profile.availability === 'Available now' ? 'selected' : ''}>Available now</option><option ${profile.availability === 'Part-time' ? 'selected' : ''}>Part-time</option><option ${profile.availability === 'Not available' ? 'selected' : ''}>Not available</option></select></label>
             <label class="block text-sm font-semibold text-slate-700 sm:col-span-2">Languages<input id="market-languages" value="${escapeHtml(profile.languages || '')}" placeholder="English, Urdu, Punjabi" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></label>
             <label class="block text-sm font-semibold text-slate-700 sm:col-span-2">Professional bio<textarea id="market-bio" class="mt-1 h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Describe your strengths, experience, and goals">${escapeHtml(profile.bio || '')}</textarea></label>
@@ -644,11 +682,9 @@ async function editProfileDetails() {
         </div>
     `;
     showModal('Edit marketplace profile', formHtml, async () => {
-        const rate = document.getElementById('market-rate').value;
         await API.put('/students/me', {
             professional_title: document.getElementById('market-title').value,
             location: document.getElementById('market-location').value,
-            hourly_rate: rate ? Number(rate) : null,
             availability: document.getElementById('market-availability').value,
             languages: document.getElementById('market-languages').value,
             bio: document.getElementById('market-bio').value,
@@ -975,6 +1011,71 @@ function deleteExperience(id, company) {
     });
 }
 
+// Project Modal Form (Supports Add & Edit)
+function showProjectModal(project = null) {
+    const isEdit = !!project;
+    const categories = ['FYP Project', 'Commercial Project', 'Funded Project', 'Research Project', 'Open Source Project', 'Personal Project', 'Academic Project', 'Other'];
+    const formHtml = `
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Project title <span class="text-rose-500">*</span></label>
+                <input type="text" id="project-title" required value="${project ? escapeHtml(project.title) : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-[#e47b0b]" placeholder="e.g. Smart Campus Portal">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Project category <span class="text-rose-500">*</span></label>
+                <select id="project-category" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-[#e47b0b]">
+                    ${categories.map(category => `<option value="${category}" ${project && project.category === category ? 'selected' : ''}>${category}</option>`).join('')}
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
+            <textarea id="project-description" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm h-24 resize-y focus:ring-2 focus:ring-[#e47b0b]" placeholder="What did you build, and what was your contribution?">${project ? escapeHtml(project.description || '') : ''}</textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Technologies / tools</label>
+            <input type="text" id="project-technologies" value="${project ? escapeHtml(project.technologies || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-[#e47b0b]" placeholder="React, FastAPI, MySQL">
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Project URL</label>
+            <input type="url" id="project-url" value="${project ? escapeHtml(project.project_url || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-[#e47b0b]" placeholder="https://github.com/username/project">
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1">Start date</label><input type="date" id="project-start-date" value="${project && project.start_date ? project.start_date : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm"></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1">End date</label><input type="date" id="project-end-date" value="${project && project.end_date ? project.end_date : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm"></div>
+        </div>
+    `;
+    showModal(isEdit ? 'Edit Project' : 'Add Project', formHtml, async () => {
+        const title = document.getElementById('project-title').value.trim();
+        if (!title) throw new Error('Project title is required');
+        const payload = {
+            title,
+            category: document.getElementById('project-category').value,
+            description: document.getElementById('project-description').value.trim() || null,
+            technologies: document.getElementById('project-technologies').value.trim() || null,
+            project_url: document.getElementById('project-url').value.trim() || null,
+            start_date: formatDateForAPI(document.getElementById('project-start-date').value),
+            end_date: formatDateForAPI(document.getElementById('project-end-date').value)
+        };
+        if (isEdit) {
+            await API.put(`/students/me/projects/${project.id}`, payload);
+            showToast('Project updated successfully');
+        } else {
+            await API.post('/students/me/projects', payload);
+            showToast('Project added successfully');
+        }
+        renderProfile();
+    });
+}
+
+function deleteProject(id, title) {
+    showConfirmModal('Delete Project', `Are you sure you want to delete the project "${title}"?`, async () => {
+        await API.delete(`/students/me/projects/${id}`);
+        showToast('Project deleted');
+        renderProfile();
+    });
+}
+
 // Achievement Modal Form (Supports Add & Edit)
 function showAchievementModal(ach = null) {
     const isEdit = !!ach;
@@ -1274,7 +1375,7 @@ async function viewJobDetail(jobId) {
                         <div class="student-job-copy">${escapeHtml(job.requirements)}</div>
                     </div>
                 ` : ''}
-                <div class="student-match-card"><span class="student-match-ring"><i class="bi bi-stars"></i></span><div><strong>${job.match_percentage}% profile match</strong><p>Based on your saved skills and proficiency.</p></div></div>
+                <div class="student-match-card"><span class="student-match-ring"><i class="bi bi-stars"></i></span><div><strong>${job.match_percentage}% profile match</strong><p>Based only on your saved skills and this role's required skills.</p></div></div>
             </div>
         `;
 
@@ -1351,7 +1452,8 @@ async function renderApplications() {
                             <option value="">All Statuses</option>
                             <option value="applied">Applied</option>
                             <option value="shortlisted">Shortlisted</option>
-                            <option value="accepted">Accepted</option>
+                            <option value="interviewed">Interviewed</option>
+                            <option value="hired">Hired</option>
                             <option value="rejected">Rejected</option>
                             <option value="withdrawn">Withdrawn</option>
                         </select>
@@ -1412,13 +1514,16 @@ async function filterApplications(page = 1) {
                                 <td class="px-6 py-4 text-xs text-slate-500 font-medium">${formatDate(item.applied_at)}</td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold 
-                                        ${item.status === 'accepted' ? 'bg-emerald-100 text-emerald-800' :
+                                        ${item.status === 'hired' ? 'bg-emerald-100 text-emerald-800' :
+                                          item.status === 'interviewed' ? 'bg-violet-100 text-violet-800' :
                                           item.status === 'rejected' ? 'bg-rose-100 text-rose-800' :
                                           item.status === 'withdrawn' ? 'bg-slate-100 text-slate-700' :
                                           item.status === 'shortlisted' ? 'bg-blue-100 text-blue-800' :
                                           'bg-amber-100 text-amber-800'}">
                                         ${escapeHtml(item.status)}
                                     </span>
+                                    ${item.rejection_reason ? `<p class="mt-1 text-xs text-rose-600">Reason: ${escapeHtml(item.rejection_reason)}</p>` : ''}
+                                    ${(item.activities || []).length ? `<div class="mt-2 space-y-1">${item.activities.map(activity => `<p class="text-xs text-slate-500"><strong class="capitalize">${escapeHtml(activity.action)}:</strong> ${escapeHtml(activity.remarks)}</p>`).join('')}</div>` : ''}
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     ${['applied', 'shortlisted'].includes(item.status) ? `
@@ -1525,6 +1630,7 @@ async function filterInterviews(page = 1) {
                             </span>
                         </div>
                         <p class="text-xs font-semibold text-[#e47b0b]">${escapeHtml(item.company_name)}</p>
+                        <p class="text-xs text-slate-600"><i class="bi bi-diagram-3 mr-1 text-[#092d52]"></i>${escapeHtml(item.interview_type || 'General interview')}</p>
                         ${item.interview_date ? `
                             <p class="text-xs text-slate-600 font-medium flex items-center gap-1">
                                 <i class="bi bi-calendar-event text-[#092d52]"></i> Scheduled Date: ${formatDate(item.interview_date)}
@@ -2795,4 +2901,3 @@ async function respond(id, action) {
 //         filterInterviews(interviewsPage);
 //     });
 // }
-
