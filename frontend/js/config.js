@@ -1,9 +1,7 @@
-// FastAPI is served by the live VM at 10.10.35.18. Local development keeps
-// using the current browser host so localhost works without changes.
+// Use the same host that serves the frontend. This works on localhost,
+// a LAN IP, or a DNS name without changing the source for each environment.
 const frontendHost = window.location.hostname;
-const apiHost = ['localhost', '127.0.0.1'].includes(frontendHost)
-    ? frontendHost
-    : '10.10.35.18';
+const apiHost = frontendHost;
 
 const CONFIG = {
     API_BASE_URL: `http://${apiHost}:8000/api/v1`,
